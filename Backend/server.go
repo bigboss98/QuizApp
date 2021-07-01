@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"time"
 
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/gorilla/mux"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -49,7 +49,7 @@ func decodeStartGameRequest(body io.ReadCloser) (Quiz, error) {
 	decoder := json.NewDecoder(body)
 	decoder.DisallowUnknownFields()
 	error := decoder.Decode(&quiz)
-	//quiz = { , quiz.Users, "", "not started", }
+
 	quiz = quiz.setDefaultValues()
 	return quiz, error
 }
@@ -76,124 +76,76 @@ func decodeQuestionRequest(body io.ReadCloser) (Question, error) {
 }
 func startGame(response http.ResponseWriter, request *http.Request) {
 	response.Header().Set("Content-Type", "application/json")
-	client, _ := initializeDatabaseConnection("mongodb://localhost")
-	//pathParams := mux.Vars(request)
-
-	// get collection as ref
-	collection := client.Database("quizdb").Collection("quiz")
+	db := openDatabase("QuizzoneDB")
+	defer db.Close()
+	verifyConnection(db, "QuizzoneDB")
 
 	defer request.Body.Close()
-	game, _ := decodeStartGameRequest(request.Body)
-	_, _ = collection.InsertOne(context.TODO(), game)
+	quiz, _ := decodeStartGameRequest(request.Body)
+	insertQuizToDatabase(db, quiz)
 
-	json_response, _ := json.MarshalIndent(game, "", "\t")
+	json_response, _ := json.MarshalIndent(quiz, "", "\t")
 	response.Write([]byte(json_response))
-	response.WriteHeader(200)
 
 }
 
 func get_question(response http.ResponseWriter, request *http.Request) {
 	response.Header().Set("Content-Type", "application/json")
-	client, _ := initializeDatabaseConnection("mongodb://localhost")
-	pathParams := mux.Vars(request)
-
-	collection := client.Database("quizdb").Collection("quiz")
-	defer request.Body.Close()
-	filter := bson.M{"game_id": bson.M{"$eq": pathParams["game_id"]}}
-
-	var quiz Quiz
-	_ = collection.FindOne(context.TODO(), filter).Decode(&quiz)
-	question := quiz.Questions[0]
-	quiz.Questions = quiz.Questions[1:]
-	json_response, _ := json.MarshalIndent(question, "", "\t")
-	response.Write([]byte(json_response))
 }
 
 func answer_question(response http.ResponseWriter, request *http.Request) {
 	response.Header().Set("Content-Type", "application/json")
-	//client, _ := initializeDatabaseConnection("mongodb://localhost")
-	//pathParams := mux.Vars(request)
-
-	defer request.Body.Close()
-	//question, _ := decodeQuestionRequest(request.Body)
-	//filter := bson.M{"id": bson.M{"$eq": pathParams["game_id"]}}
 
 }
 
 func updateQuestion(response http.ResponseWriter, request *http.Request) {
 	response.Header().Set("Content-Type", "application/json")
-	client, _ := initializeDatabaseConnection("mongodb://localhost")
-	//pathParams := mux.Vars(request)
-
-	// get collection as ref
-	collection := client.Database("quizdb").Collection("question")
+	db := openDatabase("QuizzoneDB")
+	defer db.Close()
+	verifyConnection(db, "QuizzoneDB")
 
 	defer request.Body.Close()
 	question, _ := decodeQuestionRequest(request.Body)
-	filter := bson.M{"id": bson.M{"$eq": question.ID}}
-
-	update := bson.D{
-		{"$set", bson.D{{"question", question.Question},
-			{"choices", question.Choices},
-			{"category", question.Category},
-			{"answer", question.Answer}}},
-	}
-	_, _ = collection.UpdateOne(context.TODO(), filter, update)
-
+	updateQuestionToDatabase(db, question)
 	json_response, _ := json.MarshalIndent(question, "", "\t")
 	response.Write([]byte(json_response))
 }
 
 func insertQuestion(response http.ResponseWriter, request *http.Request) {
 	response.Header().Set("Content-Type", "application/json")
-	client, _ := initializeDatabaseConnection("mongodb://localhost")
-	//pathParams := mux.Vars(request)
-
-	// get collection as ref
-	collection := client.Database("quizdb").Collection("question")
+	db := openDatabase("QuizzoneDB")
+	defer db.Close()
+	verifyConnection(db, "QuizzoneDB")
 
 	defer request.Body.Close()
 	question, _ := decodeQuestionRequest(request.Body)
-	_, _ = collection.InsertOne(context.TODO(), question)
-
+	insertQuestionToDatabase(db, question)
 	json_response, _ := json.MarshalIndent(question, "", "\t")
 	response.Write([]byte(json_response))
 }
 
 func printQuestions(response http.ResponseWriter, request *http.Request) {
 	response.Header().Set("Content-Type", "application/json")
-	client, _ := initializeDatabaseConnection("mongodb://localhost")
-	//pathParams := mux.Vars(request)
-
-	// get collection as ref
-	collection := client.Database("quizdb").Collection("question")
+	db := openDatabase("QuizzoneDB")
+	defer db.Close()
+	verifyConnection(db, "QuizzoneDB")
 
 	defer request.Body.Close()
-	cursor, _ := collection.Find(context.TODO(), bson.D{})
-
-	var question Question
-	var questions []Question
-	for cursor.Next(context.TODO()) {
-		cursor.Decode(&question)
-		questions = append(questions, question)
-	}
+	questions := printQuestionsFromDatabase(db)
 	json_response, _ := json.MarshalIndent(questions, "", "\t")
 	response.Write([]byte(json_response))
+
 }
 
 func deleteQuestion(response http.ResponseWriter, request *http.Request) {
 	response.Header().Set("Content-Type", "application/json")
-	client, _ := initializeDatabaseConnection("mongodb://localhost")
-	//pathParams := mux.Vars(request)
-
-	// get collection as ref
-	collection := client.Database("quizdb").Collection("question")
+	db := openDatabase("QuizzoneDB")
+	defer db.Close()
+	verifyConnection(db, "QuizzoneDB")
 
 	defer request.Body.Close()
 	question, _ := decodeQuestionRequest(request.Body)
-	filter := bson.M{"id": bson.M{"$eq": question.ID}}
-
-	_, _ = collection.DeleteOne(context.TODO(), filter)
+	deleteQuestionFromDatabase(db, question.ID)
 
 	json_response, _ := json.MarshalIndent(question, "", "\t")
 	response.Write([]byte(json_response))
@@ -201,74 +153,62 @@ func deleteQuestion(response http.ResponseWriter, request *http.Request) {
 
 func deleteQuestions(response http.ResponseWriter, request *http.Request) {
 	response.Header().Set("Content-Type", "application/json")
-	client, _ := initializeDatabaseConnection("mongodb://localhost")
-	//pathParams := mux.Vars(request)
-
-	// get collection as ref
-	collection := client.Database("quizdb").Collection("question")
+	db := openDatabase("QuizzoneDB")
+	defer db.Close()
+	verifyConnection(db, "QuizzoneDB")
 
 	defer request.Body.Close()
 	question, _ := decodeQuestionRequest(request.Body)
-	//filter := bson.M{"id": bson.M{"$eq": "60d7a9f7cfc3ef2d8fe2735d"}}
-
-	_, _ = collection.DeleteMany(context.TODO(), bson.D{{}})
-
+	deleteQuestionsFromDatabase(db)
 	json_response, _ := json.MarshalIndent(question, "", "\t")
 	response.Write([]byte(json_response))
 }
 
 func getGame(response http.ResponseWriter, request *http.Request) {
 	response.Header().Set("Content-Type", "application/json")
-	client, _ := initializeDatabaseConnection("mongodb://localhost")
-	pathParams := mux.Vars(request)
 
-	collection := client.Database("quizdb").Collection("quiz")
-
-	filter := bson.M{"id": bson.M{"$eq": pathParams["game_id"]}}
-	var quiz Quiz
-	_ = collection.FindOne(context.TODO(), filter).Decode(&quiz)
-
-	json_response, _ := json.MarshalIndent(quiz, "", "\t")
-	response.Write([]byte(json_response))
 }
 
 func deleteQuizGame(response http.ResponseWriter, request *http.Request) {
 	response.Header().Set("Content-Type", "application/json")
-	client, _ := initializeDatabaseConnection("mongodb://localhost")
 	pathParams := mux.Vars(request)
-	collection := client.Database("quizdb").Collection("quiz")
+	db := openDatabase("QuizzoneDB")
+	defer db.Close()
+	verifyConnection(db, "QuizzoneDB")
 
-	filter := bson.M{"id": bson.M{"$eq": pathParams["game_id"]}}
+	defer request.Body.Close()
+	deleteQuizFromDatabase(db, pathParams["game_id"])
 
-	_, _ = collection.DeleteOne(context.TODO(), filter)
-
-	response.Write([]byte("Delete a Quiz Game"))
+	response.Write([]byte("Emacs"))
 }
 
 func deleteQuizGames(response http.ResponseWriter, request *http.Request) {
 	response.Header().Set("Content-Type", "application/json")
-	client, _ := initializeDatabaseConnection("mongodb://localhost")
-	collection := client.Database("quizdb").Collection("quiz")
+	db := openDatabase("QuizzoneDB")
+	defer db.Close()
+	verifyConnection(db, "QuizzoneDB")
 
-	_, _ = collection.DeleteMany(context.TODO(), bson.D{{}})
+	defer request.Body.Close()
+	deleteQuizzesFromDatabase(db)
 
 	response.Write([]byte("Emacs"))
 }
+
 
 func main() {
 	router := mux.NewRouter()
 
 	//Endpoints considered
-	router.HandleFunc("/start_game", startGame).Methods("POST")                      //WORK set also Question
+	router.HandleFunc("/start_game", startGame).Methods("POST")                      //WORK
 	router.HandleFunc("/insert_question", insertQuestion).Methods("POST")            //WORK
-	router.HandleFunc("/update_question", updateQuestion).Methods("PUT")             // WORK change a little response body
+	router.HandleFunc("/update_question", updateQuestion).Methods("PUT")             //WORK make some test and choose what should be the response body 
 	router.HandleFunc("/delete_question", deleteQuestion).Methods("DELETE")          //WORK change a little the response body
 	router.HandleFunc("/delete_questions", deleteQuestions).Methods("DELETE")        //WORK change a little the response body
-	router.HandleFunc("/get_question/{game_id}", get_question).Methods("GET")        //WORK make some test to be sure about -->Insert an update to the question
+	router.HandleFunc("/get_question/{game_id}", get_question).Methods("GET")        //TO IMPLEMENT
 	router.HandleFunc("/answer_question/{game_id}", answer_question).Methods("POST") // TO IMPLEMENT
-	router.HandleFunc("/print_questions", printQuestions).Methods("GET")             //WORK but also insert query choices
-	router.HandleFunc("/get_game/{game_id}", getGame).Methods("GET")                 //WORK
-	router.HandleFunc("/delete_game/{game_id}", deleteQuizGame).Methods("DELETE")    //WORK
-	router.HandleFunc("/delete_games", deleteQuizGames).Methods("DELETE")            //WORK maybe not return nothing
+	router.HandleFunc("/print_questions", printQuestions).Methods("GET")             //WORK change maybe a little response body 
+	router.HandleFunc("/get_game/{game_id}", getGame).Methods("GET")                 //NOT IMPLEMENTED
+	router.HandleFunc("/delete_game/{game_id}", deleteQuizGame).Methods("DELETE")    //WORK change response body
+	router.HandleFunc("/delete_games", deleteQuizGames).Methods("DELETE")            //WORK change response body 
 	log.Fatal(http.ListenAndServe(":8080", router))
 }

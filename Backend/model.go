@@ -6,37 +6,45 @@
 package main
 
 import (
-	"context"
 	"log"
 	"math/rand"
 	"time"
 
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-const num_question int = 40
+const num_question int = 10
 
 type User struct {
-	Name string `json:name`
+	Name       string `json:name`
+	QuizPlayed []Quiz `json:quiz_played`
 }
 
 type Question struct {
 	ID       string   `json:id`
 	Question string   `json:question`
+	Language string   `json:language`
+	Author   string   `json:author`
 	Choices  []string `json:choices`
 	Category string   `json:category`
 	Answer   string   `json:answer`
 }
 
+type AnsweredQuestion struct {
+	ID      string   `json:id`
+	User    []User   `json:user`
+	Answers []string `json:answers`
+}
+
 type Quiz struct {
-	Game_ID    string     `json:game_ID`
-	Users      []User     `json:users`
-	Winner     string     `json:winner`
-	Scores     []int      `json:scores`
-	Status     string     `json:status`
-	Questions  []Question `json:questions`
-	NumPlayers int        `json:num_players`
+	Game_ID     string     `json:game_ID`
+	Users       []string   `json:users`
+	Winner      string     `json:winner`
+	Scores      []int      `json:scores`
+	Status      string     `json:status`
+	Questions   []Question `json:questions`
+	AnswerGiven []string   `json:answer_given`
+	NumPlayers  int        `json:num_players`
 }
 
 func (quiz Quiz) setDefaultValues() Quiz {
@@ -53,7 +61,7 @@ func (quiz Quiz) setDefaultValues() Quiz {
 	if error != nil {
 		log.Fatal(error)
 	}
-	quiz.Game_ID = string(game_id[1 : len(game_id)-1])
+	quiz.Game_ID = string(game_id[1 : len(game_id)-1]) //Need to remove first char since it is a \ char
 	return quiz
 }
 
@@ -64,24 +72,36 @@ func choiceQuestions(num_question int) []Question {
 	 * param:
 	 * -num_question(int): number of question to choose
 	 */
-	client, _ := initializeDatabaseConnection("mongodb://localhost")
+	db := openDatabase("QuizzoneDB")
+	defer db.Close()
+	verifyConnection(db, "QuizzoneDB")
 
-	// get collection as ref
-	collection := client.Database("quizdb").Collection("question")
+	questions := printQuestionsFromDatabase(db)
 
-	cursor, _ := collection.Find(context.TODO(), bson.D{})
-
-	var question Question
-	var questions []Question
-	for cursor.Next(context.TODO()) {
-		cursor.Decode(&question)
-		questions = append(questions, question)
-	}
 	rand.Seed(time.Now().UnixNano())
 	rand.Shuffle(len(questions), func(i, j int) { questions[i], questions[j] = questions[j], questions[i] })
+
+	var questions_id []string 
+	for _, question := range questions{
+		questions_id = append(questions_id, question.ID)
+	}
 
 	if len(questions) > num_question {
 		return questions[:num_question]
 	}
 	return questions
 }
+
+func transformQuestionsToString(questions []Question) []string{
+	var questions_id []string 
+	for _, question := range questions{
+		questions_id = append(questions_id, question.ID)
+	}
+	return questions_id
+}
+
+/*
+func transformStringToQuestion(questions_id []string) []Question{
+
+}
+*/
