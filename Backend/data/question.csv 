@@ -1,0 +1,11 @@
+id; question; language; category; answer; author; choices
+1; Qual'è la capitale d'Italia?; Italian; Geography; Roma;Marco; {Berlino, Roma, Madrid, Milano}
+2; Qual'è la capitale della Germania?; Italian; Geography; Berlino;Marco; {Bohn, Monaco, Berlino, Parigi}
+3; Qual'è la capitale del Belgio?; Italian; Geography; Bruxelles;Marco; {Bruxelles, Anversa, Parigi, Amsterdam}
+4; Qual'è la capitale dei Paesi Bassi?; Italian; Geography; Amsterdam;Marco; {Bruxelles, Rotterdam, Utrecht, Amsterdam}
+5; Quando c'è stata la scoperta dell'America?; Italian; History; 1492;Marco; {1492, 1700, 1500, 1480}
+6; What is the capital of Italy?; English; Geography; Rome;Marco; {Berlin, Rome, Madrid, Milan}
+7; Who won Champions League in 2006/2007?; English; Sport; Milan;Marco; {Milan, Liverpool, Manchester United, Inter}
+8; Who won World Cup in 2006?; English; Sport; Italy;Marco; {France, Germany, Italy, Portugal}
+9; Who was the US President from 2008 to 2016?; English; History; Obama;Marco; {Obama, Trump, Bush, Clinton}
+10; Who discover America in 1492?; English; Geography; Colombo;Marco; {Colombo, Vespucci, Vasco da Gama, Napoleone}
