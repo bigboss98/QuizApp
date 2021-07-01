@@ -26,7 +26,7 @@ func TestStartGame(test *testing.T) {
 				"name": "William"
 			}
 		]
-		}`)
+	}`)
 	request, _ := http.NewRequest("POST", "/start_game", bytes.NewBuffer(users_json))
 	request.Header.Set("Content-Type", "application/json; charset=UTF-8")
 	response := httptest.NewRecorder()
