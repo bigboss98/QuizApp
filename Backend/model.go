@@ -31,23 +31,25 @@ type Question struct {
 }
 
 type AnsweredQuestion struct {
-	ID      string   `json:id`
-	User    []User   `json:user`
-	Answers []string `json:answers`
+	ID             string   `json:id`
+	User           []User   `json:user`
+	Answers        []string `json:answers`
+	Correct_Answer string   `json:correct_answer`
 }
 
 type Quiz struct {
-	Game_ID     string     `json:game_ID`
-	Users       []string   `json:users`
-	Winner      string     `json:winner`
-	Scores      []int      `json:scores`
-	Status      string     `json:status`
-	Questions   []Question `json:questions`
-	AnswerGiven []string   `json:answer_given`
-	NumPlayers  int        `json:num_players`
+	Game_ID          string     `json:game_ID`
+	Users            []string   `json:users`
+	Winner           string     `json:winner`
+	Scores           []int      `json:scores`
+	Status           string     `json:status`
+	Questions        []string `json:questions`
+	AnswerGiven 	 []string   `json:answer_given`
+	NumPlayers  	 int        `json:num_players`
+	current_question int //Index for current question on Questions field
 }
 
-func (quiz Quiz) setDefaultValues() Quiz {
+func (quiz Quiz) setInitialValues() Quiz {
 	/*
 	 * Set Default values for a Quiz object
 	 *
@@ -55,8 +57,9 @@ func (quiz Quiz) setDefaultValues() Quiz {
 	 */
 	quiz.Scores = make([]int, len(quiz.Users))
 	quiz.NumPlayers = len(quiz.Users)
-	quiz.Questions = choiceQuestions(num_question)
+	quiz.Questions = transformQuestionsToString(choiceQuestions(num_question))
 	quiz.Status = "started"
+	quiz.current_question = 0
 	game_id, error := primitive.NewObjectIDFromTimestamp(time.Now()).MarshalJSON()
 	if error != nil {
 		log.Fatal(error)
@@ -74,17 +77,11 @@ func choiceQuestions(num_question int) []Question {
 	 */
 	db := openDatabase("QuizzoneDB")
 	defer db.Close()
-	verifyConnection(db, "QuizzoneDB")
 
 	questions := printQuestionsFromDatabase(db)
 
 	rand.Seed(time.Now().UnixNano())
 	rand.Shuffle(len(questions), func(i, j int) { questions[i], questions[j] = questions[j], questions[i] })
-
-	var questions_id []string 
-	for _, question := range questions{
-		questions_id = append(questions_id, question.ID)
-	}
 
 	if len(questions) > num_question {
 		return questions[:num_question]
@@ -98,6 +95,21 @@ func transformQuestionsToString(questions []Question) []string{
 		questions_id = append(questions_id, question.ID)
 	}
 	return questions_id
+}
+
+func (quiz Quiz) getCurrentQuestion() Question{
+	var question Question
+	current_position := quiz.current_question
+	if current_position < len(quiz.Questions){
+		question_id := quiz.Questions[quiz.current_question]
+		db := openDatabase("QuizzoneDB")
+		defer db.Close()
+		
+		quiz.current_question = quiz.current_question + 1 
+		question = getQuestionFromDatabase(db, question_id)
+		updateQuizToDatabase(db, quiz)
+	}
+	return question
 }
 
 /*
