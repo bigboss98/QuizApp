@@ -1,59 +1,102 @@
 /*
  * Model file contains all struct and functions to model Data model for
- * Quiz APP (User, Question and Quiz game object)
+ * Quiz APP (User, Question, Answered Question and Quiz game object)
  */
 
 package main
 
 import (
+	"encoding/json"
+	"fmt"
 	"log"
 	"math/rand"
 	"time"
 
+	"github.com/jackc/pgx/v4/pgxpool"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 const num_question int = 10
 
 type User struct {
+	/*
+	 * Represent a User of the game
+	 * Fields:
+	 * -Name(string): name of the player 
+	 */
 	Name       string `json:name`
-	QuizPlayed []Quiz `json:quiz_played`
 }
 
 type Question struct {
+	/*
+	 * Represent a Question of Quiz game
+	 * Fields:
+	 * -ID(string): an ID string to uniquely identify a question
+	 * -Question(string): question text
+	 * -Language(string): language of the question
+	 * -Author(string): Name of Author user 
+	 * -Choices([]string): array of string that represent answer's choices
+	 * -Category(string): category of the question
+	 * -Answer(string): correct Answer of the question
+	 */
 	ID       string   `json:id`
 	Question string   `json:question`
 	Language string   `json:language`
 	Author   string   `json:author`
 	Choices  []string `json:choices`
 	Category string   `json:category`
-	Answer   string   `json:answer`
+	Answer   string   `json:"answer, omitempty"`
 }
 
 type AnsweredQuestion struct {
+	/*
+	 * Represent an Answered Question of Quiz
+	 * Fields:
+	 * -ID(string): identification string of the AnsweredQuestion
+	 * -Question(string): ID of question to identify question
+	 * -Users([]string): users Names of the answered question
+	 * -Answers([]string): answers choices 
+	 * -CorrectAnswer(string): correct answer of the question
+	 */
 	ID             string   `json:id`
-	User           []User   `json:user`
+	Question       string   `json:question`
+	Users          []string `json:users`
 	Answers        []string `json:answers`
 	Correct_Answer string   `json:correct_answer`
 }
 
 type Quiz struct {
-	Game_ID          string     `json:game_ID`
-	Users            []string   `json:users`
-	Winner           string     `json:winner`
-	Scores           []int      `json:scores`
-	Status           string     `json:status`
+	/*
+	 * Represent a Quiz object
+	 * Fields:
+	 * -Game_ID(string): ID of Quiz
+	 * -Users([]string): Names of Quiz users
+	 * -Winner(string): Name of Quiz winner
+	 * -Scores(string): Scores of all quiz players
+	 * -Status(string): Status of the game
+	 * -Questions([]string): Array of Question IDs
+	 * -AnswerGiven([]string): Array of AnsweredQuestion IDs
+	 * -NumPlayers(int): number of Quiz players
+	 * -current_question(int): current question index to retrieve current question
+	 */
+	Game_ID          string   `json:game_ID`
+	Users            []string `json:users`
+	Winner           string   `json:winner`
+	Scores           []int    `json:scores`
+	Status           string   `json:status`
 	Questions        []string `json:questions`
-	AnswerGiven 	 []string   `json:answer_given`
-	NumPlayers  	 int        `json:num_players`
-	current_question int //Index for current question on Questions field
+	AnswerGiven      []string `json:answer_given`
+	NumPlayers       int      `json:num_players`
+	current_question int      //Index for current question on Questions field
 }
 
 func (quiz Quiz) setInitialValues() Quiz {
 	/*
-	 * Set Default values for a Quiz object
-	 *
-	 *
+	 * Set Default values for a Quiz object which has the following default values:
+	 * current_question = 0
+	 * Status = "started"
+	 * NumPlayers = len(quiz.Users)
+	 * Question = id of n randomly chosen Questions
 	 */
 	quiz.Scores = make([]int, len(quiz.Users))
 	quiz.NumPlayers = len(quiz.Users)
@@ -62,7 +105,7 @@ func (quiz Quiz) setInitialValues() Quiz {
 	quiz.current_question = 0
 	game_id, error := primitive.NewObjectIDFromTimestamp(time.Now()).MarshalJSON()
 	if error != nil {
-		log.Fatal(error)
+		log.Printf("Error: %s", error)
 	}
 	quiz.Game_ID = string(game_id[1 : len(game_id)-1]) //Need to remove first char since it is a \ char
 	return quiz
@@ -89,31 +132,121 @@ func choiceQuestions(num_question int) []Question {
 	return questions
 }
 
-func transformQuestionsToString(questions []Question) []string{
-	var questions_id []string 
-	for _, question := range questions{
+func transformQuestionsToString(questions []Question) []string {
+	/*
+	 * Transform array of n questions in un array of n Question ID
+	 * used to save in Database and to represent questions field in Quiz object
+	 */
+	var questions_id []string
+	for _, question := range questions {
 		questions_id = append(questions_id, question.ID)
 	}
 	return questions_id
 }
 
-func (quiz Quiz) getCurrentQuestion() Question{
+func getCurrentQuestion(db *pgxpool.Pool, quiz *Quiz) Question {
+	/*
+	 * Return current QUestion of a Quiz object, updating current question value in Quiz object
+	 * Params:
+	 * -db(*pgxpool.Pool):database connection used to retrieve question given question ID
+	 * -quiz(*Quiz): Quiz object used to retrieve question ID of current question 
+	 *
+	 * Return a Question object that represent the current question or default empty question
+	 * when all questions of a Quiz are already retrieved
+	 */
 	var question Question
 	current_position := quiz.current_question
-	if current_position < len(quiz.Questions){
+	if current_position < len(quiz.Questions) {
 		question_id := quiz.Questions[quiz.current_question]
-		db := openDatabase("QuizzoneDB")
-		defer db.Close()
-		
-		quiz.current_question = quiz.current_question + 1 
+		quiz.current_question = quiz.current_question + 1
 		question = getQuestionFromDatabase(db, question_id)
-		updateQuizToDatabase(db, quiz)
+		updateQuizToDatabase(db, *quiz)
 	}
 	return question
 }
 
-/*
-func transformStringToQuestion(questions_id []string) []Question{
+func (quiz Quiz) answerQuestion(db *pgxpool.Pool, question Question, answer *AnsweredQuestion) {
+	/*
+	 * Answer Question used to check answers given and to insert an AnsweredQuestion on DB
+	 * Params:
+	 * -quiz(Quiz): quiz object where we want to answer a question
+	 * -question(Question): question object that we wnat to answer
+	 * -answer(*AnsweredQuestion): AnsweredQuestion that represent answer to question
+	 */
+	checkAnswerGiven(answer.Answers, question.Choices)
 
+	quiz.AnswerGiven = append(quiz.AnswerGiven, answer.ID)
+	answer.Question = question.ID
+	answer.Correct_Answer = question.Answer
+	answer.Users = quiz.Users
+	updateQuizToDatabase(db, quiz)
+	insertAnswerToDatabase(db, *answer)
 }
-*/
+
+func checkAnswerGiven(answers []string, choices []string) error {
+	/*
+	 * Check whether given answers are valid choices for Question answer
+	 * Param:
+	 * -answers([]string): array of answer given by users
+	 * -choices([]string): array of Question answer choices
+	 *
+	 * Return an error when an answer is not a valid answer choice for the question
+	 */
+	var index int
+	for _, answer := range answers {
+		found := false
+		for index = 0; index < len(choices) && !found; index++ {
+			if answer == choices[index] {
+				found = true
+			}
+		}
+		if !found {
+			return fmt.Errorf("answer %s is not a valid choice for the question", answer)
+		}
+	}
+	return nil
+}
+
+func encodeInitialGame(quiz Quiz, indent string, prefix string) []byte {
+	/*
+	 * Encode StartQuiz response body 
+	 * Params:
+	 * -quiz(Quiz): Quiz object 
+	 * -indent(string): indent pattern used to indent JSON response
+	 * -prefix(string): prefix pattern used to indent JSON response
+	 *
+	 * Return a JSON object represented by a []byte with the following structure
+	 * {
+	 *		"game_id": ID of Quiz game
+	 * }
+	 */
+	encode_quiz := map[string]interface{}{
+		"game_id": quiz.Game_ID,
+	}
+	json_question, _ := json.MarshalIndent(encode_quiz, prefix, indent)
+	return json_question
+}
+
+func encodeAnswerQuestion(answer AnsweredQuestion, indent string, prefix string) []byte {
+	/*
+	 * Encode Answer Question response body 
+	 * Params:
+	 * -answer(AnsweredQuestion): answeredQuestion object 
+	 * -indent(string): indent pattern used to indent JSON response
+	 * -prefix(string): prefix pattern used to indent JSON response
+	 *
+	 * Return a JSON object represented by a []byte with the following structure
+	 * {
+	 *		"correct_answer": correct answer of the AnsweredQuestion
+	 *      "guess": return whether user guess the correct answer of the Question
+	 * }
+	 */
+	guess_answer := answer.Answers[0] == answer.Correct_Answer
+	encode_answer := map[string]interface{}{
+		"correct_answer": answer.Correct_Answer,
+		"guess": guess_answer,
+	}
+	json_answer, _ := json.MarshalIndent(encode_answer, prefix, indent)
+	return json_answer
+}
+

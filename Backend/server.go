@@ -62,6 +62,34 @@ func decodeQuestionRequest(body io.ReadCloser) (Question, error) {
 	return question, error
 }
 
+func decodeAnswerGiven(body io.ReadCloser) (AnsweredQuestion, error) {
+	/*
+	 * Decode Answered Question JSON fields provided in Answer Question request
+	 *
+	 * Param:
+	 * 	-body(io.ReadCloser): Body object which contains part or all Quiz JSON fields
+	 *
+	 * Returns:
+	 *   -answer(AnsweredQuestion): AnsweredQuestion object derived from JSON fields
+	 *   -err(error): Error object with eventual errors from JSON decoding
+	 */
+	var answer AnsweredQuestion
+	decoder := json.NewDecoder(body)
+	decoder.DisallowUnknownFields()
+	error := decoder.Decode(&answer)
+
+	if error != nil {
+		log.Fatal(error)
+	}
+
+	answer_id, error := primitive.NewObjectIDFromTimestamp(time.Now()).MarshalJSON()
+	if error != nil {
+		log.Fatal(error)
+	}
+	answer.ID = string(answer_id)
+	return answer, error
+}
+
 func startQuiz(response http.ResponseWriter, request *http.Request) {
 	/*
 	 * API to create and "start" a Quiz given Users names in request body
@@ -72,46 +100,68 @@ func startQuiz(response http.ResponseWriter, request *http.Request) {
 	 							a new Quiz object on DB
 	*/
 	response.Header().Set("Content-Type", "application/json")
+	response.Header().Set("Access-Control-Allow-Origin", "*")
 	db := openDatabase("QuizzoneDB")
 	defer db.Close()
 
 	defer request.Body.Close()
 	quiz, _ := decodeQuizGameRequest(request.Body)
 	insertQuizToDatabase(db, quiz)
-
-	json_response, _ := json.MarshalIndent(quiz, "", "\t")
+	
+	json_response := encodeInitialGame(quiz, "\t", "")
 	response.Write([]byte(json_response))
 
 }
 
 func get_question(response http.ResponseWriter, request *http.Request) {
+	/*
+	 *
+	 */
 	response.Header().Set("Content-Type", "application/json")
+	response.Header().Set("Access-Control-Allow-Origin", "*")
 	pathParams := mux.Vars(request)
 	db := openDatabase("QuizzoneDB")
+	status := false 
 	defer db.Close()
 
 	quiz := getQuizFromDatabase(db, pathParams["game_id"])
-	question := quiz.getCurrentQuestion()
+	question := getCurrentQuestion(db, &quiz)
 
-	json_response, _ := json.MarshalIndent(question, "", "\t")
-	response.Write([]byte(json_response))
+	if (question.Question == ""){
+		status = true
+	}
+	encode_question := map[string]interface{}{
+		"question": question,
+		"status": status,
+	}
+	json_answer, _ := json.MarshalIndent(encode_question, "", "\t")
+	response.Write([]byte(json_answer))
 }
 
 func answer_question(response http.ResponseWriter, request *http.Request) {
+	/*
+	 *
+	 */
 	response.Header().Set("Content-Type", "application/json")
+	response.Header().Set("Access-Control-Allow-Origin", "*")
 	pathParams := mux.Vars(request)
 	db := openDatabase("QuizzoneDB")
 	defer db.Close()
 
+	answer, _ := decodeAnswerGiven(request.Body)
 	quiz := getQuizFromDatabase(db, pathParams["game_id"])
-	question := quiz.getCurrentQuestion()
-	
-	json_response, _ := json.MarshalIndent(question, "", "\t")
+	question := getQuestionFromDatabase(db, quiz.Questions[quiz.current_question-1])
+	quiz.answerQuestion(db, question, &answer)
+
+	json_response := encodeAnswerQuestion(answer, "\t", "")
 	response.Write([]byte(json_response))
 
 }
 
 func updateQuestion(response http.ResponseWriter, request *http.Request) {
+	/*
+	 *
+	 */
 	response.Header().Set("Content-Type", "application/json")
 	db := openDatabase("QuizzoneDB")
 	defer db.Close()
@@ -124,6 +174,9 @@ func updateQuestion(response http.ResponseWriter, request *http.Request) {
 }
 
 func insertQuestion(response http.ResponseWriter, request *http.Request) {
+	/*
+	 *
+	 */
 	response.Header().Set("Content-Type", "application/json")
 	db := openDatabase("QuizzoneDB")
 	defer db.Close()
@@ -136,6 +189,9 @@ func insertQuestion(response http.ResponseWriter, request *http.Request) {
 }
 
 func printQuestions(response http.ResponseWriter, request *http.Request) {
+	/*
+	 *
+	 */
 	response.Header().Set("Content-Type", "application/json")
 	db := openDatabase("QuizzoneDB")
 	defer db.Close()
@@ -148,6 +204,9 @@ func printQuestions(response http.ResponseWriter, request *http.Request) {
 }
 
 func deleteQuestion(response http.ResponseWriter, request *http.Request) {
+	/*
+	 *
+	 */
 	response.Header().Set("Content-Type", "application/json")
 	db := openDatabase("QuizzoneDB")
 	defer db.Close()
@@ -161,6 +220,9 @@ func deleteQuestion(response http.ResponseWriter, request *http.Request) {
 }
 
 func deleteQuestions(response http.ResponseWriter, request *http.Request) {
+	/*
+	 *
+	 */
 	response.Header().Set("Content-Type", "application/json")
 	db := openDatabase("QuizzoneDB")
 	defer db.Close()
@@ -173,6 +235,9 @@ func deleteQuestions(response http.ResponseWriter, request *http.Request) {
 }
 
 func getGame(response http.ResponseWriter, request *http.Request) {
+	/*
+	 *
+	 */
 	response.Header().Set("Content-Type", "application/json")
 
 }
@@ -218,15 +283,18 @@ func deleteQuizGames(response http.ResponseWriter, request *http.Request) {
 }
 
 func main() {
+	/*
+	 *
+	 */
 	router := mux.NewRouter()
 
 	//Endpoints considered
-	router.HandleFunc("/start_quiz", startQuiz).Methods("POST")                       //WORK
-	router.HandleFunc("/insert_question", insertQuestion).Methods("POST")             //WORK
+	router.HandleFunc("/start_quiz", startQuiz).Methods("POST")                       //WORK 
+	router.HandleFunc("/insert_question", insertQuestion).Methods("POST", "OPTIONS")             //WORK
 	router.HandleFunc("/update_question", updateQuestion).Methods("PUT")              //WORK make some test and choose what should be the response body
 	router.HandleFunc("/delete_question", deleteQuestion).Methods("DELETE")           //WORK change a little the response body
 	router.HandleFunc("/delete_questions", deleteQuestions).Methods("DELETE")         //WORK change a little the response body
-	router.HandleFunc("/get_question/{game_id}", get_question).Methods("GET")         //WORK change a little the response body when question are ended 
+	router.HandleFunc("/get_question/{game_id}", get_question).Methods("GET")         //WORK change a little the response body when question are ended
 	router.HandleFunc("/answer_question/{game_id}", answer_question).Methods("POST")  // TO IMPLEMENT
 	router.HandleFunc("/print_questions", printQuestions).Methods("GET")              //WORK change maybe a little response body
 	router.HandleFunc("/get_quizGame/{game_id}", getGame).Methods("GET")              //NOT IMPLEMENTED -> only declare endpoint manages on server.go

@@ -48,6 +48,9 @@ func openDatabase(dbName string) *pgxpool.Pool {
 }
 
 func insertQuestionToDatabase(db *pgxpool.Pool, question Question) {
+	/*
+	 *
+	 */
 	insertQuestion := `insert into "question" values($1, $2, $3, $4, $5, $6, $7)`
 	_, err := db.Exec(context.Background(), insertQuestion, question.ID, question.Question, question.Language,
 		question.Category, question.Answer, question.Author, "{"+strings.Join(question.Choices, ",")+"}")
@@ -59,6 +62,9 @@ func insertQuestionToDatabase(db *pgxpool.Pool, question Question) {
 }
 
 func updateQuestionToDatabase(db *pgxpool.Pool, question Question) {
+	/*
+	 *
+	 */
 	updateQuestion := `update "question" SET question=$2, language=$3, category=$4, answer=$5, author=$6, choices=$7 where id=$1`
 	_, err := db.Exec(context.Background(), updateQuestion, question.ID, question.Question, question.Language, question.Category,
 		question.Answer, question.Author, "{"+strings.Join(question.Choices, ",")+"}")
@@ -69,6 +75,9 @@ func updateQuestionToDatabase(db *pgxpool.Pool, question Question) {
 	log.Printf("Updated question to DB successfully")
 }
 func deleteQuestionFromDatabase(db *pgxpool.Pool, question_id string) {
+	/*
+	 *
+	 */
 	deleteQuestion := `delete from "question" where id=$1`
 	_, err := db.Exec(context.Background(), deleteQuestion, question_id)
 
@@ -79,6 +88,9 @@ func deleteQuestionFromDatabase(db *pgxpool.Pool, question_id string) {
 }
 
 func deleteQuestionsFromDatabase(db *pgxpool.Pool) {
+	/*
+	 *
+     */
 	deleteQuestion := `delete from "question"`
 	_, err := db.Exec(context.Background(), deleteQuestion)
 
@@ -89,6 +101,9 @@ func deleteQuestionsFromDatabase(db *pgxpool.Pool) {
 }
 
 func printQuestionsFromDatabase(db *pgxpool.Pool) []Question {
+	/*
+	 *
+	 */
 	rows, err := db.Query(context.Background(), `SELECT * FROM "question"`)
 
 	if err != nil {
@@ -151,7 +166,21 @@ func getQuestionFromDatabase(db *pgxpool.Pool, question_id string) Question {
 
 //}
 
+func insertAnswerToDatabase(db *pgxpool.Pool, answer AnsweredQuestion){
+	insertAnswer := `insert into "answeredquestion" values($1, $2, $3, $4)`
+	_, err := db.Exec(context.Background(), insertAnswer, answer.ID, answer.Answers, answer.Question,
+					  "{" + strings.Join(answer.Users, ",") + "}")
+
+	if err != nil {
+		log.Printf("Errors %s inserting Answer Question to DB", err)
+	}
+	log.Printf("Insert Answer Question to DB successfully")
+}
+
 func getQuizFromDatabase(db *pgxpool.Pool, quiz_id string) Quiz {
+	/* 
+	 *
+	 */
 	getQuiz := `select * from "quiz" where quiz_id=$1`
 	row := db.QueryRow(context.Background(), getQuiz, quiz_id)
 
@@ -166,7 +195,7 @@ func getQuizFromDatabase(db *pgxpool.Pool, quiz_id string) Quiz {
 	var current_question int
 
 	err := row.Scan(&id, &users, &winner, &status, &num_players, &questions,
-		pq.Array(&answer_given), &current_question, &scores)
+		pq.Array(&answer_given), &scores, &current_question)
 
 	if err != nil {
 		log.Printf("Errors %s in retrieved Quiz from DB", err)
@@ -181,6 +210,9 @@ func getQuizFromDatabase(db *pgxpool.Pool, quiz_id string) Quiz {
 }
 
 func insertQuizToDatabase(db *pgxpool.Pool, quiz Quiz) {
+	/*
+	 *
+	 */
 	insertQuiz := `insert into "quiz"(quiz_id, users, status, scores, num_players, questions, current_question) values($1, $2, $3, $4, $5, $6, $7)`
 	_, err := db.Exec(context.Background(), insertQuiz, quiz.Game_ID, "{"+strings.Join(quiz.Users, ",")+"}",
 		quiz.Status, pq.Array(quiz.Scores), quiz.NumPlayers, "{"+strings.Join(quiz.Questions, ",")+"}",
@@ -193,6 +225,9 @@ func insertQuizToDatabase(db *pgxpool.Pool, quiz Quiz) {
 }
 
 func updateQuizToDatabase(db *pgxpool.Pool, quiz Quiz) {
+	/*
+	 *
+	 */
 	var err error
 	if quiz.Winner != "" {
 		updateQuestion := `update "quiz" SET users=$2, winner=$3, status=$4, scores=$5, questions=$6, num_players=$7,
@@ -217,6 +252,9 @@ func updateQuizToDatabase(db *pgxpool.Pool, quiz Quiz) {
 }
 
 func deleteQuizFromDatabase(db *pgxpool.Pool, quiz_id string) {
+	/*
+	 *
+	 */
 	deleteQuestion := `delete from "quiz" where quiz_id=$1`
 	_, err := db.Exec(context.Background(), deleteQuestion, quiz_id)
 
@@ -227,6 +265,9 @@ func deleteQuizFromDatabase(db *pgxpool.Pool, quiz_id string) {
 }
 
 func deleteQuizzesFromDatabase(db *pgxpool.Pool) {
+	/*
+	 *
+	 */
 	deleteQuestion := `delete from "quiz"`
 	_, err := db.Exec(context.Background(), deleteQuestion)
 
