@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"log"
 	"strings"
-
 	"github.com/jackc/pgx/v4/pgxpool"
-
 	"github.com/lib/pq"
 )
 
 const (
+	/*
+	 * Connection constant used to connect to database
+	 */
 	user     = "bigboss98"
 	password = "Xyz?^(?yZ02"
 	host     = "localhost"
@@ -24,32 +25,34 @@ func dsn(dbName string) string {
 	 * Param:
 	 * -dbName(string): Name of database
 	 */
-	return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbName)
+	return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable",
+					   host, port, user, password, dbName)
 }
 
 func openDatabase(dbName string) *pgxpool.Pool {
 	/*
-	 * Open a database connection
+	 * Open a database connection returning a pgxpool.Pool object that represent
+	 * a Pool of Database connections
 	 * Param:
 	 * -dbName(string): name of database
-	 * Return a sql.DB object which represent a pool of DB connections
 	 */
 	db, err := pgxpool.Connect(context.Background(), dsn(dbName))
+	
 	if err != nil {
 		log.Printf("Error %s when opening DB %s", err, dbName)
 		return nil
 	}
 	log.Printf("Connection to %s happened correctly", dbName)
-	//db.SetMaxOpenConns(20)                 //Number of max open connections available on database dbName
-	//db.SetMaxIdleConns(20)                 //Max number of idle connections available on database dbName
-	//db.SetConnMaxLifetime(time.Minute * 5) //Maximum time for a database connection
 
 	return db
 }
 
 func insertQuestionToDatabase(db *pgxpool.Pool, question Question) {
 	/*
-	 *
+	 * Insert Question Object to DB 
+	 * Params:
+	 * -db(*pgxpool.Pool): Pool of DB connections
+	 * -question(Question): question object to be inserted 
 	 */
 	insertQuestion := `insert into "question" values($1, $2, $3, $4, $5, $6, $7)`
 	_, err := db.Exec(context.Background(), insertQuestion, question.ID, question.Question, question.Language,
@@ -63,7 +66,10 @@ func insertQuestionToDatabase(db *pgxpool.Pool, question Question) {
 
 func updateQuestionToDatabase(db *pgxpool.Pool, question Question) {
 	/*
-	 *
+	 * Update Question object to DB 
+	 * Params:
+	 * -db(*pgxpool.Pool): Pool of DB connections
+	 * -question(Question): question object to be updated on DB
 	 */
 	updateQuestion := `update "question" SET question=$2, language=$3, category=$4, answer=$5, author=$6, choices=$7 where id=$1`
 	_, err := db.Exec(context.Background(), updateQuestion, question.ID, question.Question, question.Language, question.Category,
@@ -76,7 +82,10 @@ func updateQuestionToDatabase(db *pgxpool.Pool, question Question) {
 }
 func deleteQuestionFromDatabase(db *pgxpool.Pool, question_id string) {
 	/*
-	 *
+	 * Delete question object with a given Question ID from DB 
+	 * Params:
+	 * -db(*pgxpool.Pool): Pool of DB connections
+	 * -question_id(string): Question ID of question to be deleted from DB
 	 */
 	deleteQuestion := `delete from "question" where id=$1`
 	_, err := db.Exec(context.Background(), deleteQuestion, question_id)
@@ -84,12 +93,14 @@ func deleteQuestionFromDatabase(db *pgxpool.Pool, question_id string) {
 	if err != nil {
 		log.Printf("Errors %s deleting Question to DB", err)
 	}
-	log.Printf("Delete question with ID %s successfully", question_id)
+	log.Printf("Deleted question with ID %s", question_id)
 }
 
 func deleteQuestionsFromDatabase(db *pgxpool.Pool) {
 	/*
-	 *
+	 * Delete all Questions from Database 
+	 * Params:
+	 * -db(*pgxpool.Pool): Pool of DB connections
      */
 	deleteQuestion := `delete from "question"`
 	_, err := db.Exec(context.Background(), deleteQuestion)
@@ -102,7 +113,9 @@ func deleteQuestionsFromDatabase(db *pgxpool.Pool) {
 
 func printQuestionsFromDatabase(db *pgxpool.Pool) []Question {
 	/*
-	 *
+	 * Retrieve all Questions from DB returning an array of Question object
+	 * Params:
+	 * -db(*pgxpool.Pool): Pool of DB connections
 	 */
 	rows, err := db.Query(context.Background(), `SELECT * FROM "question"`)
 
@@ -128,6 +141,7 @@ func printQuestionsFromDatabase(db *pgxpool.Pool) []Question {
 		}
 		questions = append(questions, Question{id, question, language, author, choices, category, answer})
 	}
+	log.Printf("Retrieved %d questions from Database", len(questions))
 	return questions
 }
 
@@ -136,13 +150,12 @@ func getQuestionFromDatabase(db *pgxpool.Pool, question_id string) Question {
 	 * Get a Question from Database given question ID
 	 *
 	 * Params:
-	 * -db(*sql.DB): database connection
+	 * -db(*pgxpool.Pool): Pool of DB connection
 	 * -question_id(string): ID of Question to be retrieved from DB
 	 *
-	 * Return Retrieved question or Log error
+	 * Return Retrieved question object
 	 */
 	selectQuestion := `SELECT * FROM "question" WHERE id=$1`
-	log.Printf("ID Question: %s", question_id)
 	row := db.QueryRow(context.Background(), selectQuestion, question_id)
 	var id string
 	var question string
@@ -157,9 +170,9 @@ func getQuestionFromDatabase(db *pgxpool.Pool, question_id string) Question {
 	if err != nil {
 		log.Printf("Errors %s in retrieved Questions from DB", err)
 	}
+	log.Printf("Retrieved Question from DB with ID: %s", question_id)
 
 	return Question{id, question, language, author, choices, category, answer}
-
 }
 
 //func insertUserToDatabase(db *sql.DB, user User){
@@ -167,6 +180,12 @@ func getQuestionFromDatabase(db *pgxpool.Pool, question_id string) Question {
 //}
 
 func insertAnswerToDatabase(db *pgxpool.Pool, answer AnsweredQuestion){
+	/*
+	 * Insert Answer object to DB 
+	 * Params:
+	 * -db(*pgxpool.Pool): Pool of DB connections
+	 * -answer(AnsweredQuestion): answeredQuestion object to be inserted on DB
+	 */
 	insertAnswer := `insert into "answeredquestion" values($1, $2, $3, $4)`
 	_, err := db.Exec(context.Background(), insertAnswer, answer.ID, answer.Answers, answer.Question,
 					  "{" + strings.Join(answer.Users, ",") + "}")
@@ -179,7 +198,10 @@ func insertAnswerToDatabase(db *pgxpool.Pool, answer AnsweredQuestion){
 
 func getQuizFromDatabase(db *pgxpool.Pool, quiz_id string) Quiz {
 	/* 
-	 *
+	 * Retrieve quiz object from DB given its Quiz ID
+	 * Params:
+	 * -db(*pgxpool.Pool): Pool of DB connections
+	 * -quiz_id(string): ID of Quiz object to be retrieved
 	 */
 	getQuiz := `select * from "quiz" where quiz_id=$1`
 	row := db.QueryRow(context.Background(), getQuiz, quiz_id)
@@ -200,8 +222,9 @@ func getQuizFromDatabase(db *pgxpool.Pool, quiz_id string) Quiz {
 	if err != nil {
 		log.Printf("Errors %s in retrieved Quiz from DB", err)
 	}
+	log.Printf("Retrieved Quiz object with ID %s", quiz_id)
 
-	if winner == nil {
+	if winner == nil {//CASE with no winner and by default we set with ""
 		temp := ""
 		winner = &temp
 	}
@@ -211,7 +234,10 @@ func getQuizFromDatabase(db *pgxpool.Pool, quiz_id string) Quiz {
 
 func insertQuizToDatabase(db *pgxpool.Pool, quiz Quiz) {
 	/*
-	 *
+	 * Insert Quiz object on DB 
+	 * Params:
+	 * -db(*pgxpool.Pool): Pool of DB connections
+	 * -quiz(Quiz): quiz object to be inserted
 	 */
 	insertQuiz := `insert into "quiz"(quiz_id, users, status, scores, num_players, questions, current_question) values($1, $2, $3, $4, $5, $6, $7)`
 	_, err := db.Exec(context.Background(), insertQuiz, quiz.Game_ID, "{"+strings.Join(quiz.Users, ",")+"}",
@@ -219,16 +245,21 @@ func insertQuizToDatabase(db *pgxpool.Pool, quiz Quiz) {
 		quiz.current_question)
 
 	if err != nil {
-		log.Printf("Errors %s insering Question to DB", err)
+		log.Printf("Errors %s inserting Question to DB", err)
 	}
 	log.Printf("Insert quiz to DB successfully")
 }
 
 func updateQuizToDatabase(db *pgxpool.Pool, quiz Quiz) {
 	/*
-	 *
+	 * Update Quiz object on DB given its Quiz id
+	 * Params:
+	 * -db(*pgxpool.Pool): Pool of DB connections
+	 * -quiz(Quiz): quiz object to be updated on DB
 	 */
 	var err error
+
+	//Case with no winner already
 	if quiz.Winner != "" {
 		updateQuestion := `update "quiz" SET users=$2, winner=$3, status=$4, scores=$5, questions=$6, num_players=$7,
 						   current_question=$8, answers_given=$9 where quiz_id=$1`
@@ -236,7 +267,7 @@ func updateQuizToDatabase(db *pgxpool.Pool, quiz Quiz) {
 			quiz.Scores, "{"+strings.Join(quiz.Questions, ",")+"}", quiz.NumPlayers, quiz.current_question,
 			pq.Array(quiz.AnswerGiven))
 
-	} else {
+	} else {//Case of END of game with winner 
 		updateQuestion := `update "quiz" SET users=$2, status=$3, scores=$4, questions=$5, num_players=$6,
 						   current_question=$7, answers_given=$8 where quiz_id=$1`
 		_, err = db.Exec(context.Background(), updateQuestion, quiz.Game_ID, quiz.Users, quiz.Status,
@@ -253,7 +284,10 @@ func updateQuizToDatabase(db *pgxpool.Pool, quiz Quiz) {
 
 func deleteQuizFromDatabase(db *pgxpool.Pool, quiz_id string) {
 	/*
-	 *
+	 * Delete Quiz object from database given its ID 
+	 * Params:
+	 * -db(*pgxpool.Pool): Pool of DB connections
+	 * -quiz_id(string): ID of Quiz object to be deleted from DB
 	 */
 	deleteQuestion := `delete from "quiz" where quiz_id=$1`
 	_, err := db.Exec(context.Background(), deleteQuestion, quiz_id)
@@ -266,7 +300,9 @@ func deleteQuizFromDatabase(db *pgxpool.Pool, quiz_id string) {
 
 func deleteQuizzesFromDatabase(db *pgxpool.Pool) {
 	/*
-	 *
+	 * Delete all Quiz matches from database
+	 * Params:
+	 * -db(*pgxpool.Pool): Pool of DB connections
 	 */
 	deleteQuestion := `delete from "quiz"`
 	_, err := db.Exec(context.Background(), deleteQuestion)
