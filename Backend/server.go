@@ -55,7 +55,7 @@ func decodeQuestionRequest(body io.ReadCloser) (Question, error) {
 	if question.ID == "" {
 		id, error := primitive.NewObjectIDFromTimestamp(time.Now()).MarshalJSON()
 		if error != nil {
-			log.Fatal(error)
+			log.Printf("%s", error)
 		}
 		question.ID = string(id[1 : len(id)-1])
 	}
@@ -79,12 +79,12 @@ func decodeAnswerGiven(body io.ReadCloser) (AnsweredQuestion, error) {
 	error := decoder.Decode(&answer)
 
 	if error != nil {
-		log.Fatal(error)
+		log.Printf("%s", error)
 	}
 
 	answer_id, error := primitive.NewObjectIDFromTimestamp(time.Now()).MarshalJSON()
 	if error != nil {
-		log.Fatal(error)
+		log.Printf("%s", error)
 	}
 	answer.ID = string(answer_id)
 	return answer, error
@@ -97,8 +97,8 @@ func startQuiz(response http.ResponseWriter, request *http.Request) {
 	 * Params:
 	 * -response(http.ResponseWriter): response object used to give created Quiz as response
 	 * -request(*http.Request): request object with all information needed to process and create
-	 							a new Quiz object on DB
-	*/
+	 *							a new Quiz object on DB
+	 */
 	response.Header().Set("Content-Type", "application/json")
 	response.Header().Set("Access-Control-Allow-Origin", "*")
 	db := openDatabase("QuizzoneDB")
@@ -115,7 +115,11 @@ func startQuiz(response http.ResponseWriter, request *http.Request) {
 
 func get_question(response http.ResponseWriter, request *http.Request) {
 	/*
-	 *
+	 * API to get question from a Quiz game given its ID 
+	 * Params:
+	 * -response(http.ResponseWriter): response object used to give retrieved Question as response
+	 * -request(*http.Request): request object with all information needed to process and retrieve
+	 *							Question from DB
 	 */
 	response.Header().Set("Content-Type", "application/json")
 	response.Header().Set("Access-Control-Allow-Origin", "*")
@@ -128,7 +132,7 @@ func get_question(response http.ResponseWriter, request *http.Request) {
 	question := getCurrentQuestion(db, &quiz)
 
 	if (question.Question == ""){
-		status = true
+		status = false //Status used to show whether we retrieve or not question from a Quiz match 
 	}
 	encode_question := map[string]interface{}{
 		"question": question,
@@ -140,7 +144,12 @@ func get_question(response http.ResponseWriter, request *http.Request) {
 
 func answer_question(response http.ResponseWriter, request *http.Request) {
 	/*
-	 *
+	 * API to answer a question of a Quiz match given its Quiz ID 
+	 * Params:
+	 * -response(http.ResponseWriter): response object used to give result obtained by 
+	 *                                 answer question as response
+	 * -request(*http.Request): request object with all information needed to process and answer
+	 *							Question from a Quiz match
 	 */
 	response.Header().Set("Content-Type", "application/json")
 	response.Header().Set("Access-Control-Allow-Origin", "*")
@@ -160,7 +169,10 @@ func answer_question(response http.ResponseWriter, request *http.Request) {
 
 func updateQuestion(response http.ResponseWriter, request *http.Request) {
 	/*
-	 *
+	 * API to update a Question on DB 
+	 * -response(http.ResponseWriter): response object used to give updated question as response
+	 * -request(*http.Request): request object with all information needed to process and update
+	 *							Question object on DB	 
 	 */
 	response.Header().Set("Content-Type", "application/json")
 	db := openDatabase("QuizzoneDB")
@@ -175,7 +187,11 @@ func updateQuestion(response http.ResponseWriter, request *http.Request) {
 
 func insertQuestion(response http.ResponseWriter, request *http.Request) {
 	/*
-	 *
+	 * API used to insert a new question on DB
+	 * Params:
+	 * -response(http.ResponseWriter): response object used to give created Question as response
+	 * -request(*http.Request): request object with all information needed to process and create
+	 *							a new Question object on DB
 	 */
 	response.Header().Set("Content-Type", "application/json")
 	db := openDatabase("QuizzoneDB")
@@ -190,7 +206,11 @@ func insertQuestion(response http.ResponseWriter, request *http.Request) {
 
 func printQuestions(response http.ResponseWriter, request *http.Request) {
 	/*
-	 *
+	 * API used to print all questions on DB
+	 * Params:
+	 * -response(http.ResponseWriter): response object used to give all retrieved questions as response
+	 * -request(*http.Request): request object with all information needed to process and retrieve
+	 							all Question object from DB
 	 */
 	response.Header().Set("Content-Type", "application/json")
 	db := openDatabase("QuizzoneDB")
@@ -205,7 +225,11 @@ func printQuestions(response http.ResponseWriter, request *http.Request) {
 
 func deleteQuestion(response http.ResponseWriter, request *http.Request) {
 	/*
-	 *
+	 * API used to delete Question from DB
+	 * Params:
+	 * -response(http.ResponseWriter): response object used to give deleted Question as response
+	 * -request(*http.Request): request object with all information needed to process and delete
+	 							a Question object on DB
 	 */
 	response.Header().Set("Content-Type", "application/json")
 	db := openDatabase("QuizzoneDB")
@@ -221,7 +245,11 @@ func deleteQuestion(response http.ResponseWriter, request *http.Request) {
 
 func deleteQuestions(response http.ResponseWriter, request *http.Request) {
 	/*
-	 *
+	 * API used to delete all Question from DB 
+	 * Params:
+	 * -response(http.ResponseWriter): response object used to give all deleted Question as response
+	 * -request(*http.Request): request object with all information needed to process and delete
+	 							all Question objects on DB
 	 */
 	response.Header().Set("Content-Type", "application/json")
 	db := openDatabase("QuizzoneDB")
@@ -236,7 +264,10 @@ func deleteQuestions(response http.ResponseWriter, request *http.Request) {
 
 func getGame(response http.ResponseWriter, request *http.Request) {
 	/*
-	 *
+	 * API to retrieve a Quiz match from DB given its Quiz ID
+	 * -response(http.ResponseWriter): response object used to obtain retrieved Quiz as response
+	 * -request(*http.Request): request object with all information needed to process and retrieve
+	 							a Quiz object from DB
 	 */
 	response.Header().Set("Content-Type", "application/json")
 
@@ -284,7 +315,7 @@ func deleteQuizGames(response http.ResponseWriter, request *http.Request) {
 
 func main() {
 	/*
-	 *
+	 * Main function used to define and manage API endpoints 
 	 */
 	router := mux.NewRouter()
 
@@ -294,8 +325,8 @@ func main() {
 	router.HandleFunc("/update_question", updateQuestion).Methods("PUT")              //WORK make some test and choose what should be the response body
 	router.HandleFunc("/delete_question", deleteQuestion).Methods("DELETE")           //WORK change a little the response body
 	router.HandleFunc("/delete_questions", deleteQuestions).Methods("DELETE")         //WORK change a little the response body
-	router.HandleFunc("/get_question/{game_id}", get_question).Methods("GET")         //WORK change a little the response body when question are ended
-	router.HandleFunc("/answer_question/{game_id}", answer_question).Methods("POST")  // TO IMPLEMENT
+	router.HandleFunc("/get_question/{game_id}", get_question).Methods("GET")         //WORK
+	router.HandleFunc("/answer_question/{game_id}", answer_question).Methods("POST")  // TO IMPLEMENT score update of Question 
 	router.HandleFunc("/print_questions", printQuestions).Methods("GET")              //WORK change maybe a little response body
 	router.HandleFunc("/get_quizGame/{game_id}", getGame).Methods("GET")              //NOT IMPLEMENTED -> only declare endpoint manages on server.go
 	router.HandleFunc("/delete_quizGame/{game_id}", deleteQuizGame).Methods("DELETE") //WORK change response body
