@@ -59,12 +59,15 @@ type AnsweredQuestion struct {
 	 * -Users([]string): users Names of the answered question
 	 * -Answers([]string): answers choices 
 	 * -CorrectAnswer(string): correct answer of the question
+	 * -TimeToAnswer(time.Time): time required to Answer 
 	 */
-	ID             string   `json:id`
-	Question       string   `json:question`
-	Users          []string `json:users`
-	Answers        []string `json:answers`
-	Correct_Answer string   `json:correct_answer`
+	ID             string    `json:id`
+	Question       string    `json:question`
+	Users          []string  `json:users`
+	Answers        []string  `json:answers`
+	Correct_Answer string    `json:correct_answer`
+	Score		   int       `json:score`
+	TimeToAnswer   int       `json:TimeToAnswer`
 }
 
 type Quiz struct {
@@ -93,6 +96,11 @@ type Quiz struct {
 	current_question int      //Index for current question on Questions field
 	createdAt        time.Time
 }
+
+const maxTimeAnswer = 20; 
+const basePoint = 200;
+const maxIncrement = 100; 
+const decrementPoint = -200; 
 
 func (quiz Quiz) setInitialValues() Quiz {
 	/*
@@ -186,8 +194,19 @@ func (quiz Quiz) answerQuestion(db *pgxpool.Pool, question Question, answer *Ans
 	answer.Question = question.ID
 	answer.Correct_Answer = question.Answer
 	answer.Users = quiz.Users
+	answer.Score = answer.computeScores()
+	quiz.Scores[0] = quiz.Scores[0] + answer.Score 
 	updateQuizToDatabase(db, quiz)
 	insertAnswerToDatabase(db, *answer)
+}
+
+func (answer AnsweredQuestion) computeScores() int {
+	if answer.Answers[0] == answer.Correct_Answer {
+		fmt.Sprint(answer.TimeToAnswer)
+		return basePoint + maxIncrement / maxTimeAnswer * 
+						   (maxTimeAnswer - answer.TimeToAnswer)
+	}
+	return decrementPoint
 }
 
 func checkAnswerGiven(answers []string, choices []string) error {
@@ -252,6 +271,7 @@ func encodeAnswerQuestion(answer AnsweredQuestion, indent string, prefix string)
 	encode_answer := map[string]interface{}{
 		"correct_answer": answer.Correct_Answer,
 		"guess": guess_answer,
+		"score": answer.Score,
 	}
 	json_answer, _ := json.MarshalIndent(encode_answer, prefix, indent)
 	return json_answer

@@ -188,9 +188,9 @@ func insertAnswerToDatabase(db *pgxpool.Pool, answer AnsweredQuestion) {
 	 * -db(*pgxpool.Pool): Pool of DB connections
 	 * -answer(AnsweredQuestion): answeredQuestion object to be inserted on DB
 	 */
-	insertAnswer := `insert into "answeredquestion" values($1, $2, $3, $4)`
+	insertAnswer := `insert into "answeredquestion" values($1, $2, $3, $4, $5, $6)`
 	_, err := db.Exec(context.Background(), insertAnswer, answer.ID, answer.Answers, answer.Question,
-		"{"+strings.Join(answer.Users, ",")+"}")
+		"{"+strings.Join(answer.Users, ",")+"}", answer.TimeToAnswer, answer.Score)
 
 	if err != nil {
 		log.Printf("Errors %s inserting Answer Question to DB", err)
