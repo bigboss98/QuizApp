@@ -3,6 +3,7 @@ import React, {useState, useEffect} from 'react';
 import { StyleSheet, Text, View, Button, TouchableOpacity} from 'react-native';
 import {widthPercentageToDP as wp, heightPercentageToDP as hp} from 'react-native-responsive-screen';
 import { startQuiz } from '../api/start_game';
+import { timeToAnswer } from '../common/common';
 
 export default function StartGame({ navigation }) {
     /*
@@ -21,6 +22,7 @@ export default function StartGame({ navigation }) {
                                 navigation.navigate('QuizMatch', {
                                     gameId: data.game_id,
                                     started: false,
+                                    questionTimer: timeToAnswer,
                                 })
                             }
                             startMyGame()

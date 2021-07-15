@@ -6,10 +6,20 @@ import { StyleSheet, Text, View, TouchableOpacity, Button} from 'react-native';
 import answerQuestion from './answer_question';
 import {widthPercentageToDP as wp, heightPercentageToDP as hp} from 'react-native-responsive-screen';
 
-export default function Question({question, choices, navigation, quizId}){
-    console.log(choices)
+
+export default function Question({question, choices, navigation, quizId, resetTimer}){
+    /*
+     * Component to render a Question of the Quiz game 
+     * Params:
+     *      question: current Question text 
+     *      choices: Array of possible answer choices
+     *      navigation: navigation object to navigate to different Scenes
+     *      quizId: ID of Quiz match
+     */
+    
     return (
         <View> 
+
             <Text> {question}</Text>
             <View style={{flexDirection: 'row'}}>
                 <Choice style={styles.choice} choice={choices[0]} 
@@ -32,6 +42,16 @@ export default function Question({question, choices, navigation, quizId}){
 }
 
 export function Choice({style, choice, quizId, navigation, question, choices}){
+    /*
+     * Component to render a Choice of a Question 
+     * Params:
+     *      style: style to use to render a Choice
+     *      choice: answer choice to represent
+     *      quizId: ID of Quiz match
+     *      navigation: navigation object to navigate in case 
+     *      question: Question text used to pass to AnswerQuestion scene
+     *      choices: array of Answer choices 
+     */
     return (
         <TouchableOpacity styles={style}
                           onPress={() => {
@@ -50,7 +70,15 @@ export function Choice({style, choice, quizId, navigation, question, choices}){
 }
 
 export function getStyleChoice(answer, answer_given, choice){
-
+    /*
+     * Function used to select Style to render Choice based on 
+     * correct answer and answer chosen
+     * 
+     * Param:
+     *      answer: JSON returned by answerQuestion API
+     *      answer_given: answer given by a user
+     *      choice: answer choice to choose the style 
+     */
     if(answer_given != choice){
         return styles.choice;
     }

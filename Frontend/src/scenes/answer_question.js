@@ -1,11 +1,13 @@
 import React from 'react';
 import { View, Text, Button } from 'react-native';
+import { timeToAnswer } from '../common/common';
 import { Choice, getStyleChoice } from '../components/question';
 
 export default function AnswerQuestion({ route, navigation }) {
     /*
-     * SelectGameType is the component used to select which modalities of Briscola game between
-     * Single player and Multiplayer
+     * AnswerQuestion is the scene used to show Answer of a Question
+     *
+     * Param:
      */
         const {quizId, answer_given, choices, question, answer} = route.params;
         return (
@@ -31,6 +33,7 @@ export default function AnswerQuestion({ route, navigation }) {
                         navigation.navigate('QuizMatch', {
                             gameId: quizId,
                             started: false,
+                            questionTimer: timeToAnswer,
                         })
                     }/>  
             </View>
