@@ -25,6 +25,7 @@ type User struct {
 	 * -Name(string): name of the player 
 	 */
 	Name       string `json:name`
+	//createdAt time.Time 
 }
 
 type Question struct {
@@ -46,6 +47,7 @@ type Question struct {
 	Choices  []string `json:choices`
 	Category string   `json:category`
 	Answer   string   `json:"answer, omitempty"`
+	//createdAt time.Time  
 }
 
 type AnsweredQuestion struct {
@@ -78,6 +80,7 @@ type Quiz struct {
 	 * -AnswerGiven([]string): Array of AnsweredQuestion IDs
 	 * -NumPlayers(int): number of Quiz players
 	 * -current_question(int): current question index to retrieve current question
+	 * -createdAt(time.Time): Time where Quiz match was created 
 	 */
 	Game_ID          string   `json:game_ID`
 	Users            []string `json:users`
@@ -88,6 +91,7 @@ type Quiz struct {
 	AnswerGiven      []string `json:answer_given`
 	NumPlayers       int      `json:num_players`
 	current_question int      //Index for current question on Questions field
+	createdAt        time.Time
 }
 
 func (quiz Quiz) setInitialValues() Quiz {
@@ -97,12 +101,14 @@ func (quiz Quiz) setInitialValues() Quiz {
 	 * Status = "started"
 	 * NumPlayers = len(quiz.Users)
 	 * Question = id of n randomly chosen Questions
+	 * createdAt = time.Now() 
 	 */
 	quiz.Scores = make([]int, len(quiz.Users))
 	quiz.NumPlayers = len(quiz.Users)
 	quiz.Questions = transformQuestionsToString(choiceQuestions(num_question))
 	quiz.Status = "started"
 	quiz.current_question = 0
+	quiz.createdAt = time.Now()
 	game_id, error := primitive.NewObjectIDFromTimestamp(time.Now()).MarshalJSON()
 	if error != nil {
 		log.Printf("Error: %s", error)
@@ -124,7 +130,8 @@ func choiceQuestions(num_question int) []Question {
 	questions := printQuestionsFromDatabase(db)
 
 	rand.Seed(time.Now().UnixNano())
-	rand.Shuffle(len(questions), func(i, j int) { questions[i], questions[j] = questions[j], questions[i] })
+	rand.Shuffle(len(questions), 
+	             func(i, j int) { questions[i], questions[j] = questions[j], questions[i] })
 
 	if len(questions) > num_question {
 		return questions[:num_question]
