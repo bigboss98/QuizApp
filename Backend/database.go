@@ -188,7 +188,8 @@ func insertAnswerToDatabase(db *pgxpool.Pool, answer AnsweredQuestion) {
 	 * -db(*pgxpool.Pool): Pool of DB connections
 	 * -answer(AnsweredQuestion): answeredQuestion object to be inserted on DB
 	 */
-	insertAnswer := `insert into "answeredquestion" values($1, $2, $3, $4, $5, $6)`
+	//insertAnswer := `insert into "answeredquestion" values($1, $2, $3, $4, $5, $6)`
+	/*
 	_, err := db.Exec(context.Background(), insertAnswer, answer.ID, answer.Answers, answer.Question,
 		"{"+strings.Join(answer.Users, ",")+"}", answer.TimeToAnswer, answer.Score)
 
@@ -196,6 +197,7 @@ func insertAnswerToDatabase(db *pgxpool.Pool, answer AnsweredQuestion) {
 		log.Printf("Errors %s inserting Answer Question to DB", err)
 	}
 	log.Printf("Insert Answer Question to DB successfully")
+	*/
 }
 
 func getQuizFromDatabase(db *pgxpool.Pool, quiz_id string) Quiz {
@@ -230,8 +232,8 @@ func getQuizFromDatabase(db *pgxpool.Pool, quiz_id string) Quiz {
 		temp := ""
 		winner = &temp
 	}
-	return Quiz{id, users, *winner, scores, status, questions, answer_given, num_players, current_question, created_at}
-
+//	return Quiz{id, users, *winner, scores, status, questions, answer_given, num_players, current_question, created_at}
+	return Quiz{}
 }
 
 func insertQuizToDatabase(db *pgxpool.Pool, quiz Quiz) {
@@ -241,8 +243,9 @@ func insertQuizToDatabase(db *pgxpool.Pool, quiz Quiz) {
 	 * -db(*pgxpool.Pool): Pool of DB connections
 	 * -quiz(Quiz): quiz object to be inserted
 	 */
-	insertQuiz := `insert into "quiz"(quiz_id, users, status, scores, num_players, questions,
-				   current_question, created_at) values($1, $2, $3, $4, $5, $6, $7, $8)`
+	//insertQuiz := `insert into "quiz"(quiz_id, users, status, scores, num_players, questions,
+	//			   current_question, created_at) values($1, $2, $3, $4, $5, $6, $7, $8)`
+	/*
 	_, err := db.Exec(context.Background(), insertQuiz, quiz.Game_ID, "{"+strings.Join(quiz.Users, ",")+"}",
 		quiz.Status, pq.Array(quiz.Scores), quiz.NumPlayers, "{"+strings.Join(quiz.Questions, ",")+"}",
 		quiz.current_question, quiz.createdAt)
@@ -251,6 +254,7 @@ func insertQuizToDatabase(db *pgxpool.Pool, quiz Quiz) {
 		log.Printf("Errors %s inserting Question to DB", err)
 	}
 	log.Printf("Insert quiz to DB successfully")
+	*/
 }
 
 func updateQuizToDatabase(db *pgxpool.Pool, quiz Quiz) {
@@ -260,8 +264,8 @@ func updateQuizToDatabase(db *pgxpool.Pool, quiz Quiz) {
 	 * -db(*pgxpool.Pool): Pool of DB connections
 	 * -quiz(Quiz): quiz object to be updated on DB
 	 */
-	var err error
-
+	//var err error
+	/*
 	//Case with no winner already
 	if quiz.Winner != "" {
 		updateQuestion := `update "quiz" SET users=$2, winner=$3, status=$4, scores=$5, questions=$6, num_players=$7,
@@ -283,6 +287,7 @@ func updateQuizToDatabase(db *pgxpool.Pool, quiz Quiz) {
 		log.Printf("Errors %s when updating Quiz to DB", err)
 	}
 	log.Printf("Updated quiz game to DB successfully")
+	*/
 }
 
 func deleteQuizFromDatabase(db *pgxpool.Pool, quiz_id string) {
