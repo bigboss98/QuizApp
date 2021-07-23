@@ -28,20 +28,20 @@ type Message struct {
 	/*
 	 *
 	 */
-	Action  string `json:"action"`
-	Message []byte `json:"message"`
-	Target  *Room  `json:"target"`
-	Sender  *User  `json:"sender"`
+	Action  string           `json:"action"`
+	Message AnsweredQuestion `json:"message"`
+	Target  *Room            `json:"target"`
+	Sender  *User            `json:"sender"`
 }
 
 type Response struct {
 	/*
 	 * 
 	 */
-	Action  string `json:action`
-	Message string `json:message`
-	Target  *Room  `json:target`
-	Sender  *User  `json:sender`
+	Action  string           `json:action`
+	Message string           `json:message`
+	Target  *Room            `json:target`
+	Sender  *User            `json:sender`
 }
 
 func (message *Message) encode() []byte {

@@ -1,9 +1,7 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
-	"log"
 )
 
 type Room struct {
@@ -62,9 +60,12 @@ func (room *Room) RunRoom() {
 				case StartGameAction:
 					room.notifyStartMessage(message)
 
-			//case GetQuestionAction:
-			//room.notifyGetQuestion(message)
+				case GetQuestionAction:
+					room.notifyGetQuestion(message)
 
+				case EndGameAction:
+					room.notifyEndGame(message)
+				
 				case AnswerQuestionAction:
 					room.notifyAnswerQuestion(message)
 				//room.broadcastToClientsInRoom(message.encode())
@@ -108,13 +109,14 @@ func (room *Room) broadcastToClientsInRoom(message []byte) {
 }
 
 func (room *Room) notifyAnswerQuestion(message *Message) {
-	var answer AnsweredQuestion
-	err := json.Unmarshal(message.Message, &answer)
-	if err != nil {
-		log.Printf("Error in Answer Question encoding: %s", err)
-	}
-	room.quiz.answerQuestion(&answer)
-	json_response := encodeAnswerQuestion(answer, "\t", "")
+	//var answer AnsweredQuestion
+	//err := json.Unmarshal(message.Message, &answer)
+	//if err != nil {
+	//	log.Printf("Error in Answer Question encoding: %s", err)
+	//}
+	room.quiz.answerQuestion(&message.Message)
+	json_response := encodeAnswerQuestion(message.Message, "\t", "")
+	
 	response := &Response{
 		Action:  message.Action,
 		Message: string(json_response),
@@ -124,6 +126,16 @@ func (room *Room) notifyAnswerQuestion(message *Message) {
 	room.broadcastToClientsInRoom(response.encode())
 }
 
+func (room *Room) notifyGetQuestion(message *Message) {
+	question := getCurrentQuestion(room.quiz)
+	response := &Response{
+		Action:  message.Action,
+		Message: encodeQuestion(&question),
+		Sender:  message.Sender,
+		Target:  message.Target,
+	}
+	room.broadcastToClientsInRoom(response.encode())
+}
 func (room *Room) notifyUserJoined(user *User) {
 	/*
 	 * Notify Join Message to all users of the Room with action set to JoinRoomAction
@@ -140,6 +152,19 @@ func (room *Room) notifyUserJoined(user *User) {
 	room.broadcastToClientsInRoom(response.encode())
 }
 
+func (room *Room) notifyEndGame(message *Message) {
+	quiz := room.quiz.endGame()
+	json_response := encodeGetQuiz(quiz, "\t", "")
+	room.quiz = nil 
+	response := &Response{
+		Action: EndGameAction,
+		Target: room,
+		Message: string(json_response),
+		Sender: message.Sender,
+	}
+	
+	room.broadcastToClientsInRoom(response.encode())
+}
 func (room *Room) notifyStartMessage(message *Message) {
 	/*
 	 * Notify Start message to all users of the Room when action is set to StartGameAction

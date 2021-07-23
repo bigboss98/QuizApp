@@ -134,15 +134,14 @@ func (user *User) handleNewMessage(jsonMessage []byte) {
 	message.Sender = user
 
 	switch message.Action {
+		case EndGameAction:
+			user.handleGame(&message)
+
 		case AnswerQuestionAction:
-			user.handleAnswerQuestion(&message)
+			user.handleGame(&message)
 
 		case GetQuestionAction:
-			roomName := message.Target.Name 
-
-			if room := user.wsServer.findRoomByName(roomName); room != nil {
-				room.broadcast <- &message
-			}
+			user.handleGame(&message)
 
 		case StartGameAction:
 			user.handleStartGameMessage(&message)
@@ -155,13 +154,14 @@ func (user *User) handleNewMessage(jsonMessage []byte) {
 	}
 }
 
-func (user *User) handleAnswerQuestion(message *Message) {
+func (user *User) handleGame(message *Message) {
 	roomName := message.Target.Name
 
 	room := user.wsServer.findRoomByName(roomName)
 
 	room.broadcast <- message 
 }
+
 func (user *User) handleStartGameMessage(message *Message) {
 	/* 
 	 * Handle StartGame Message which set status of user in a room to ready
@@ -175,16 +175,19 @@ func (user *User) handleStartGameMessage(message *Message) {
 	roomName := message.Target.Name
 
 	room := user.wsServer.findRoomByName(roomName)
-	room.ready[user] = true 
 
-	var startedGame = "started" 
-	for _, status := range room.ready {
-		if startedGame == "started" && !status {
-			startedGame = "not started" 
+	if room.status != "started" { 
+		room.ready[user] = true 
+
+		var startedGame = "started" 
+		for _, status := range room.ready {
+			if startedGame == "started" && !status {
+				startedGame = "not started" 
+			}
 		}
-	}
-	room.status = startedGame
-	room.broadcast <- message 
+		room.status = startedGame
+		room.broadcast <- message
+	} 
 }
 
 func (user *User) handleJoinRoomMessage(message Message) {

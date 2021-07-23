@@ -72,6 +72,8 @@ func (quiz Quiz) answerQuestion(answer *AnsweredQuestion) {
 	answer.Question = question.ID
 	answer.Correct_Answer = question.Answer
 	//answer.Users = quiz.Users
+	log.Print(answer.Answer)
+	log.Printf("Correct Answer: %s", answer.Correct_Answer)
 	answer.Score = answer.computeScores()
 	quiz.Scores[0] = quiz.Scores[0] + answer.Score
 	//updateQuizToDatabase(db, quiz)

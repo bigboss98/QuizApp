@@ -42,8 +42,8 @@ type AnsweredQuestion struct {
 	 */
 	ID             string   `json:id`
 	Question       string   `json:question`
-	User           string   `json:users`
-	Answer         string   `json:answers`
+	User           string   `json:user`
+	Answer         string   `json:answer`
 	Correct_Answer string   `json:correct_answer`
 	Score          int      `json:score`
 	TimeToAnswer   int      `json:TimeToAnswer`
@@ -69,18 +69,6 @@ func choiceQuestions(num_question int) []Question {
 		return questions[:num_question]
 	}
 	return questions
-}
-
-func transformQuestionsToString(questions []Question) []string {
-	/*
-	 * Transform array of n questions in un array of n Question ID
-	 * used to save in Database and to represent questions field in Quiz object
-	 */
-	var questions_id []string
-	for _, question := range questions {
-		questions_id = append(questions_id, question.ID)
-	}
-	return questions_id
 }
 
 func getCurrentQuestion(quiz *Quiz) Question {
