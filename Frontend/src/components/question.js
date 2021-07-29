@@ -5,9 +5,9 @@ import React, {useState, useEffect} from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, Button} from 'react-native';
 import answerQuestion from './answer_question';
 import {widthPercentageToDP as wp, heightPercentageToDP as hp} from 'react-native-responsive-screen';
+import { timeToAnswer } from '../common/common';
 
-
-export default function Question({question, choices, navigation, quizId, resetTimer}){
+export default function Question({question, choices, navigation, quizId, seconds}){
     /*
      * Component to render a Question of the Quiz game 
      * Params:
@@ -24,24 +24,24 @@ export default function Question({question, choices, navigation, quizId, resetTi
             <View style={{flexDirection: 'row'}}>
                 <Choice style={styles.choice} choice={choices[0]} 
                         quizId={quizId} question={question} choices={choices}
-                        navigation={navigation}></Choice>
+                        navigation={navigation} seconds={seconds}></Choice>
                 <Choice style={styles.choice} choice={choices[1]}
                         quizId={quizId} question={question} choices={choices}
-                        navigation={navigation}></Choice>
+                        navigation={navigation} seconds={seconds}></Choice>
             </View>
             <View style={{flexDirection: 'row'}}>
                 <Choice style={styles.choice} choice={choices[2]}
                         quizId={quizId} question={question} choices={choices}
-                        navigation={navigation}></Choice>
+                        navigation={navigation} seconds={seconds}></Choice>
                 <Choice style={styles.choice} choice={choices[3]}
                         quizId={quizId} question={question} choices={choices}
-                        navigation={navigation}></Choice>
+                        navigation={navigation} seconds={seconds}></Choice>
             </View>
         </View>
     );
 }
 
-export function Choice({style, choice, quizId, navigation, question, choices}){
+export function Choice({style, choice, quizId, navigation, question, choices, seconds}){
     /*
      * Component to render a Choice of a Question 
      * Params:
@@ -55,14 +55,14 @@ export function Choice({style, choice, quizId, navigation, question, choices}){
     return (
         <TouchableOpacity styles={style}
                           onPress={() => {
-                            navigation.navigate('AnswerQuestion', {
-                                    quizId: quizId,
-                                    answer_given: choice, 
-                                    choices: choices,
-                                    question: question,
-                                    answer: answerQuestion(quizId, choice)
-                                })
-                            }}>
+                              navigation.navigate('AnswerQuestion', {
+                                quizId: quizId,
+                                answer_given: choice, 
+                                choices: choices,
+                                question: question,
+                                answer: answerQuestion(quizId, choice, timeToAnswer - seconds)
+                              })
+                          }}>
 
             <Text> {choice}</Text>
         </TouchableOpacity>

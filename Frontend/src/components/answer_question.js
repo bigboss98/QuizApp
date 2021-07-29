@@ -1,6 +1,6 @@
 import { AnswerQuestion } from "../api/start_game";
 
-export default function answerQuestion(quiz_id, choice){
+export default function answerQuestion(quiz_id, choice, timeAnswer){
     /* 
      * Component to answer Question given quiz_id and the answer choice
      *
@@ -16,11 +16,13 @@ export default function answerQuestion(quiz_id, choice){
     const answer = async () => {
         const data = await AnswerQuestion(quiz_id, {
                 "Answers": [choice],
+                "TimeToAnswer": timeAnswer,
             });
         return {
             correct_answer: data.correct_answer,
-            guess: data.guess,            
-            }
+            guess: data.guess, 
+            score: data.score,            
+        }
     }
     return answer();
 }

@@ -2,6 +2,7 @@
  * Api functions to start a Quiz game 
  */
 import axios from 'axios';
+import { io } from "socket.io-client";
 
 export async function startQuiz(requestBody) {
     /*
@@ -38,4 +39,15 @@ export async function AnswerQuestion(gameId, requestBody){
     const response = await axios.post('http://192.168.1.75:8080/answer_question/' + gameId,
                                       JSON.stringify(requestBody));
     return response.data; 
+}
+
+export async function EndGame(gameId){
+    const response = await axios.post('http://192.168.1.75:8000/end_quiz' + gameId);
+    return response.data; 
+}
+
+export async function FinalResults(gameId){
+    const response = await axios.get('http://192.168.1.75:8080/get_quizGame/' + gameId)
+    return response.data; 
+
 }

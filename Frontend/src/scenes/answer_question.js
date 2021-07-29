@@ -33,7 +33,6 @@ export default function AnswerQuestion({ route, navigation }) {
                         navigation.navigate('QuizMatch', {
                             gameId: quizId,
                             started: false,
-                            questionTimer: timeToAnswer,
                         })
                     }/>  
             </View>

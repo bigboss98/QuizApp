@@ -22,7 +22,6 @@ export default function StartGame({ navigation }) {
                                 navigation.navigate('QuizMatch', {
                                     gameId: data.game_id,
                                     started: false,
-                                    questionTimer: timeToAnswer,
                                 })
                             }
                             startMyGame()
