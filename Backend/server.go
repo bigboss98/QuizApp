@@ -15,13 +15,6 @@ import (
 
 var upgrader = websocket.Upgrader{} //DEFINE Upgrader methods that upgrade HTTP request to Websocket
 
-/*
-type Room struct {
-	name string
-	broadcast chan *Message
-
-}
-*/
 func decodeQuizGameRequest(body io.ReadCloser) (Quiz, error) {
 	/*
 	 * Decode Quiz JSON fields provided in Start Quiz request

@@ -26,7 +26,12 @@ type WsServer struct {
 
 type Message struct {
 	/*
-	 *
+	 * Indicates the input Message given by Websocket's user 
+	 * Fields:
+	 * -Action(string): indicates the action of the message (possible action are provided in common.go)
+	 * -Message(AnsweredQuestion): Answered Question needed only with AnsweredQuestion otherwise is not considered 
+	 * -Target(*Room): indicates the room target of the message 
+	 * -Sender(*User): indicates the sender of the message 
 	 */
 	Action  string           `json:"action"`
 	Message AnsweredQuestion `json:"message"`
@@ -36,7 +41,12 @@ type Message struct {
 
 type Response struct {
 	/*
-	 * 
+	 * Response message given after every websocket communication
+	 * Fields:
+	 * -Action(string): return the type of message useful as information
+	 * -Message(string): information given as response to a 
+	 * -Target(*Room): Room target of Response message -> Makes sense as response??
+	 * -Sender(*User): Sender of the message --> Makes Sense?
 	 */
 	Action  string           `json:action`
 	Message string           `json:message`
@@ -45,6 +55,9 @@ type Response struct {
 }
 
 func (message *Message) encode() []byte {
+	/*
+	 * Encode a Message JSON object from a Message object 
+	 */
 	jsonMessage, err := json.Marshal(message)
 
 	if err != nil {
@@ -55,6 +68,9 @@ func (message *Message) encode() []byte {
 }
 
 func (response *Response) encode() []byte {
+	/*
+	 * Encode a Response object as JSON from Response object 
+	 */
 	jsonMessage, err := json.Marshal(response)
 
 	if err != nil {

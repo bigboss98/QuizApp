@@ -14,6 +14,7 @@ type Room struct {
 	 * -unregister(chan *User): channel where there will be client to be unregistered from the room
 	 * -broadcast(chan *Message): message to be broadcasted to all users
 	 * -ready(map[*User]bool): map of clients with their ready game status
+	 * -quiz(*Quiz): quiz Object which indicates the current Quiz Game  
 	 * -status(string): indicates whether game is started, ended or not already started
 	 */
 	Name       string `json:name`
@@ -88,9 +89,9 @@ func (room *Room) registerUserInRoom(user *User) {
 
 func (room *Room) unregisterUserInRoom(user *User) {
 	/*
-		     * Unregister user from a Room object
-			 * -user(*User): user to be unregistered from the room
-	*/
+	 * Unregister user from a Room object
+	 * -user(*User): user to be unregistered from the room
+	 */
 	if _, ok := room.users[user]; ok {
 		delete(room.users, user)
 		delete(room.ready, user)
@@ -109,11 +110,6 @@ func (room *Room) broadcastToClientsInRoom(message []byte) {
 }
 
 func (room *Room) notifyAnswerQuestion(message *Message) {
-	//var answer AnsweredQuestion
-	//err := json.Unmarshal(message.Message, &answer)
-	//if err != nil {
-	//	log.Printf("Error in Answer Question encoding: %s", err)
-	//}
 	room.quiz.answerQuestion(&message.Message)
 	json_response := encodeAnswerQuestion(message.Message, "\t", "")
 	
@@ -127,6 +123,9 @@ func (room *Room) notifyAnswerQuestion(message *Message) {
 }
 
 func (room *Room) notifyGetQuestion(message *Message) {
+	/*
+	 * Notify Get new questions to users 
+	 */
 	question := getCurrentQuestion(room.quiz)
 	response := &Response{
 		Action:  message.Action,
@@ -153,9 +152,13 @@ func (room *Room) notifyUserJoined(user *User) {
 }
 
 func (room *Room) notifyEndGame(message *Message) {
-	quiz := room.quiz.endGame()
-	json_response := encodeGetQuiz(quiz, "\t", "")
-	room.quiz = nil 
+	/*
+	 * Notify the end of the game 
+	 * Set Status of Quiz to Ended and status of the room to "not started"
+	 */
+	room.quiz = room.quiz.endGame()
+	json_response := encodeGetQuiz(*room.quiz, "\t", "")
+	room.status = "not started"
 	response := &Response{
 		Action: EndGameAction,
 		Target: room,

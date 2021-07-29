@@ -31,7 +31,7 @@ type Quiz struct {
 	Game_ID          string         `json:game_ID`
 	Users            map[*User]bool `json:users`
 	Winner           string         `json:winner`
-	Scores           []int          `json:scores`
+	Scores           map[string]int  `json:scores`
 	Status           string         `json:status`
 	Questions        []Question     `json:questions`
 	AnswerGiven      []string       `json:answer_given`
@@ -41,12 +41,15 @@ type Quiz struct {
 }
 
 func createQuiz(users map[*User]bool) *Quiz {
+	/*
+	 * Creates a Quiz object from a map of Users 
+	 */
 	game_id, err := primitive.NewObjectIDFromTimestamp(time.Now()).MarshalJSON()
 	if err != nil {
 		log.Printf("Error: %s", err)
 	}
 	return &Quiz{
-		Scores:           make([]int, len(users)),
+		Scores:           make(map[string]int),
 		NumPlayers:       len(users),
 		Status:           "started",
 		Users:            users,
@@ -75,7 +78,7 @@ func (quiz Quiz) answerQuestion(answer *AnsweredQuestion) {
 	log.Print(answer.Answer)
 	log.Printf("Correct Answer: %s", answer.Correct_Answer)
 	answer.Score = answer.computeScores()
-	quiz.Scores[0] = quiz.Scores[0] + answer.Score
+	quiz.Scores[answer.User] = quiz.Scores[answer.User] + answer.Score
 	//updateQuizToDatabase(db, quiz)
 	//insertAnswerToDatabase(db, *answer)
 }
@@ -120,7 +123,7 @@ func encodeGetQuiz(quiz Quiz, indent string, prefix string) []byte {
 	 * }
 	 */
 	encode_answer := map[string]interface{}{
-		"score":  quiz.Scores[0],
+		"score":  quiz.Scores,
 		"status": quiz.Status,
 		"winner": quiz.Winner,
 	}
@@ -128,10 +131,22 @@ func encodeGetQuiz(quiz Quiz, indent string, prefix string) []byte {
 	return json_answer
 }
 
-func (quiz *Quiz) endGame() Quiz {
+func (quiz *Quiz) endGame() *Quiz {
+	/*
+	 * End the game and return the new Quiz object 
+	 * 
+	 */
 	if quiz.current_question == num_question && len(quiz.AnswerGiven) == num_question {
 		quiz.Status = "ended"
-		//quiz.Winner = quiz.Users[0]
+		winner := ""
+		bestScore := -500000
+		for user, score := range quiz.Scores {
+			if score > bestScore {
+				bestScore = score
+				winner = user 
+			}
+		}
+		quiz.Winner = winner 
 	}
-	return *quiz
+	return quiz
 }

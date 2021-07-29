@@ -91,6 +91,12 @@ func getCurrentQuestion(quiz *Quiz) Question {
 }
 
 func (answer AnsweredQuestion) computeScores() int {
+	/*
+	 * Compute Score of an Answer with the following rules:
+	 * 1) if Answer is wrong the score is given by decrement point constant(by default -200)
+	 * 2) If answer is correct the score is basePoint(default +200) + 
+	 			(maxIncrement /maxTimeAnswer) * (maxTimeAnswer-userTimeToAnswer)
+	 */
 	if answer.Answer == answer.Correct_Answer {
 		return basePoint + maxIncrement/maxTimeAnswer*
 			(maxTimeAnswer-answer.TimeToAnswer)
@@ -117,6 +123,13 @@ func checkAnswerGiven(answer string, choices []string) error {
 }
 
 func encodeQuestion(question *Question) string {
+	/*
+	 * Encode Question response message with the following format:
+	 * {
+	 *		"question": JSON object that represent the question
+	 *      "status": indicates whether the question is retrieved or not from a Quiz match
+	 * }
+	 */
 	var status bool = true
 	if question.Question == "" {
 		status = false //Status used to show whether we retrieve or not question from a Quiz match

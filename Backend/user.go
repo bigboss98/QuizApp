@@ -176,7 +176,7 @@ func (user *User) handleStartGameMessage(message *Message) {
 
 	room := user.wsServer.findRoomByName(roomName)
 
-	if room.status != "started" { 
+	if room != nil && room.status != "started"{ 
 		room.ready[user] = true 
 
 		var startedGame = "started" 
@@ -216,10 +216,10 @@ func (user *User) handleLeaveRoomMessage(message Message) {
 	 * -message(Message): message received from User to leave Room 
 	 */
 	room := user.wsServer.findRoomByName(message.Target.Name)
-	if user.room == room {
+	if room != nil && user.room != nil && user.room == room {
 		user.room = nil
+		room.unregister <- user
 	}
-	room.unregister <- user
 }
 
 func (user *User) disconnect() {
