@@ -34,6 +34,7 @@ type Message struct {
 	 * -Sender(*User): indicates the sender of the message 
 	 */
 	Action  string           `json:"action"`
+	Token   string           `json:"token"`
 	Message AnsweredQuestion `json:"message"`
 	Target  *Room            `json:"target"`
 	Sender  *User            `json:"sender"`

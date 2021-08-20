@@ -320,3 +320,38 @@ func deleteQuizzesFromDatabase(db *pgxpool.Pool) {
 	}
 	log.Printf("Deleted all quiz game from DB successfully")
 }
+
+func insertUserToDatabase(db *pgxpool.Pool, user User) {
+	/*
+	 * 
+	 */
+	insertUser := `insert into "user"(name, password, role) values ($1, $2, $3)`
+	_, err := db.Exec(context.Background(), insertUser, user.Name, user.Password, user.Role)
+
+	if err != nil {
+		log.Printf("Error: %s", err)
+	}
+	log.Printf("Insert User in Database")
+
+}
+
+func getUserFromDatabase(db *pgxpool.Pool, name string) *User{
+	getUser := `select * from "user" where name=$1`
+	row := db.QueryRow(context.Background(), getUser, name)
+	var username string 
+	var password string 
+	var role string 
+	err := row.Scan(&username, &role, &password)
+
+	if err != nil {
+		log.Printf("Error: %s", err)
+	}
+	log.Printf("Get User from Database")
+	
+	return &User{
+		Name: username,
+		Password: password,
+		Role: role,
+		Status: "not ready",
+	}
+}

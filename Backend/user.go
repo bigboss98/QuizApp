@@ -14,20 +14,26 @@ type User struct {
 	 * Represent a User of the game
 	 * Fields:
 	 * -Name(string): name of the player
+	 * -Status(string): status of the player("ready", "not ready", "Not Authorized")
+	 * -Password(string): Password of the player (Saved in DB with only their Hash)
 	 * -conn(*websocket.Conn): connection object of an User
 	 * -room(*Room): represent Room object of the user 
 	 * -wsServer(*WsServer): WebSocket server object where all connections are been directed
 	 * -send(chan []byte): JSON message sended by User
 	 */
 	Name     string `json:name`
+	Status   string `json:status`
+	Password string `json:password`
+	Role     string `json:role`
 	conn     *websocket.Conn
 	room     *Room
 	wsServer *WsServer
 	send     chan []byte
+
 	//createdAt time.Time
 }
 
-func newUser(conn *websocket.Conn, wsServer *WsServer, name string) *User {
+func newUser(conn *websocket.Conn, wsServer *WsServer, name string, password string, role string, status string) *User {
 	/*
 	 * Creates a New User with also its Connection
 	 *
@@ -35,10 +41,13 @@ func newUser(conn *websocket.Conn, wsServer *WsServer, name string) *User {
 	 *	-conn(*websocket.Conn): websocket connection 
 	 *  -wsServer(*WsServer): Websocket object associated to user
 	 *  -name(string): Name of User 
+	 *  -password(string): Password of the User 
 	 */
 	return &User{
 		conn:     conn,
 		Name:     name,
+		Status: status,
+		Password: password,
 		wsServer: wsServer,
 		room:     nil,
 		send:     make(chan []byte, 3000),
@@ -151,6 +160,31 @@ func (user *User) handleNewMessage(jsonMessage []byte) {
 
 		case LeaveRoomAction:
 			user.handleLeaveRoomMessage(message)
+
+		case GetPlayersAction:
+			user.handleGetPlayersMessage(&message)
+
+		case AuthentificationAction:
+			user.handleAuthentification(&message)
+	}
+}
+
+func (user *User) handleGetPlayersMessage(message *Message) {
+	roomName := message.Target.Name 
+
+	room := user.wsServer.findRoomByName(roomName)
+
+	room.broadcast <- message
+}
+
+func (user *User) handleAuthentification(message *Message) {
+	if IsAuthorized(message.Token) {
+		user.Status = "not ready"
+		user.send <- []byte("User Authorized")
+	}else {
+		log.Printf("User Not Authorized")
+		close(user.send)
+		user.conn.Close()
 	}
 }
 
@@ -177,6 +211,7 @@ func (user *User) handleStartGameMessage(message *Message) {
 	room := user.wsServer.findRoomByName(roomName)
 
 	if room != nil && room.status != "started"{ 
+		room.users[user.GetName()].Status = "ready"
 		room.ready[user] = true 
 
 		var startedGame = "started" 
@@ -241,4 +276,31 @@ func (user *User) GetName() string {
 	 * -user: User object which we return its name 
 	 */
 	return user.Name
+}
+
+func getPlayers(players map[string]*User) []User {
+	var users []User
+	for _, user := range players {
+		if user != nil {
+			users = append(users, *user)
+		}
+	}
+	return users 
+}
+
+func encodePlayers(users []User, room *Room) string {
+	encode_players := map[string]interface{}{
+		"players": users,
+	}
+	json_answer, _ := json.MarshalIndent(encode_players, "", "\t")
+	return string(json_answer)
+}
+
+func encodeUser(user User, indent string, prefix string) string {
+	encode_user := map[string]interface{}{
+		"name": user.Name, 
+		"role": user.Role,
+	}
+	json_user, _ := json.MarshalIndent(encode_user, prefix, indent)
+	return string(json_user)
 }

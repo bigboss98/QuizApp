@@ -13,7 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-var upgrader = websocket.Upgrader{} //DEFINE Upgrader methods that upgrade HTTP request to Websocket
+var upgrader = websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }} //DEFINE Upgrader methods that upgrade HTTP request to Websocket
 
 func decodeQuizGameRequest(body io.ReadCloser) (Quiz, error) {
 	/*
@@ -93,6 +93,65 @@ func decodeAnswerGiven(body io.ReadCloser) (AnsweredQuestion, error) {
 	return answer, error
 }
 
+func signUp(response http.ResponseWriter, request *http.Request) {
+	response.Header().Set("Content-Type", "application/json")
+	response.Header().Set("Access-Control-Allow-Origin", "*")
+	var user User
+	decoder := json.NewDecoder(request.Body)
+	decoder.DisallowUnknownFields()
+	err := decoder.Decode(&user)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	user.Password, err = GeneratehashPassword(user.Password)
+	if err != nil {
+		log.Fatalln("error in password hash")
+	}
+
+	db := openDatabase("QuizzoneDB")
+	defer db.Close()
+
+	insertUserToDatabase(db, user)
+	json_user := encodeUser(user, "\t", "")
+	response.Write([]byte(json_user))
+}
+
+func signIn(response http.ResponseWriter, request *http.Request) {
+	response.Header().Set("Content-Type", "application/json")
+	response.Header().Set("Access-Control-Allow-Origin", "*")
+	db := openDatabase("QuizzoneDB")
+	defer db.Close()
+
+	var authdetails Authentication
+	err := json.NewDecoder(request.Body).Decode(&authdetails)
+	if err != nil {
+		log.Printf("Error: %s", err)
+	}
+
+	authuser := getUserFromDatabase(db, authdetails.Name)
+	check := CheckPasswordHash(authdetails.Password, authuser.Password)
+
+	if !check {
+		log.Printf("Error: Username or Password is incorrect")
+	}
+
+	validToken, err := GenerateJWT(authuser.Name, authuser.Role)
+	if err != nil {
+		log.Printf("Error: %s", err)
+	}
+
+	var token Token
+	token.Name = authuser.Name
+	token.Role = authuser.Role
+	token.TokenString = validToken
+
+	json_token := encodeSignIn(token, "\t", "")
+	response.Write([]byte(json_token))
+
+}
+
 func startConn(wsServer *WsServer, response http.ResponseWriter, request *http.Request) {
 	/*
 	 * API to create and "start" a Conn given Users names in request body
@@ -105,15 +164,21 @@ func startConn(wsServer *WsServer, response http.ResponseWriter, request *http.R
 	 */
 	response.Header().Set("Content-Type", "application/json")
 	response.Header().Set("Access-Control-Allow-Origin", "*")
-	pathVars := mux.Vars(request)
+	requestVars := mux.Vars(request)
 	conn, err := upgrader.Upgrade(response, request, nil)
+
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	if err != nil {
 		log.Printf("Error in Websocket upgrades with error %s", err)
 	}
 
-	user := newUser(conn, wsServer, pathVars["username"])
-
+	db := openDatabase("QuizzoneDB")
+	defer db.Close()
+	userDb := getUserFromDatabase(db, requestVars["name"])
+	user := newUser(conn, wsServer, userDb.Name, userDb.Password, userDb.Role, "Not Authorized")
 	go user.writeMessage()
 	go user.readMessage()
 
@@ -246,9 +311,11 @@ func main() {
 	wsServer := NewWebsocketServer()
 	go wsServer.Run()
 	//Endpoints considered
-	router.HandleFunc("/start_quiz/{username}", func(w http.ResponseWriter, r *http.Request) {
+	router.HandleFunc("/start_quiz/{name}", func(w http.ResponseWriter, r *http.Request) {
 		startConn(wsServer, w, r)
 	})
+	router.HandleFunc("/sign_up", signUp).Methods("POST") //WORK only create User table on the DB
+	router.HandleFunc("/sign_in", signIn).Methods("POST") //Create User table on the DB 
 	router.HandleFunc("/insert_question", insertQuestion).Methods("POST", "OPTIONS")  //WORK
 	router.HandleFunc("/update_question", updateQuestion).Methods("PUT")              //WORK make some test and choose what should be the response body
 	router.HandleFunc("/delete_question", deleteQuestion).Methods("DELETE")           //WORK change a little the response body

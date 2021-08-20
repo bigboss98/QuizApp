@@ -18,7 +18,7 @@ type Room struct {
 	 * -status(string): indicates whether game is started, ended or not already started
 	 */
 	Name       string `json:name`
-	users      map[*User]bool
+	users      map[string]*User 
 	register   chan *User
 	unregister chan *User
 	broadcast  chan *Message
@@ -35,7 +35,7 @@ func NewRoom(name string) *Room {
 	 */
 	return &Room{
 		Name:       name,
-		users:      make(map[*User]bool),
+		users:      make(map[string]*User),
 		register:   make(chan *User),
 		unregister: make(chan *User),
 		broadcast:  make(chan *Message),
@@ -64,8 +64,10 @@ func (room *Room) RunRoom() {
 				case GetQuestionAction:
 					room.notifyGetQuestion(message)
 
+				case GetPlayersAction:
+					room.notifyGetPlayers(message)
 				case EndGameAction:
-					room.notifyEndGame(message)
+					room.notifyEndGame(message, message.Sender)
 				
 				case AnswerQuestionAction:
 					room.notifyAnswerQuestion(message)
@@ -83,7 +85,7 @@ func (room *Room) registerUserInRoom(user *User) {
 	 * -user(*User): User object to be registered on the room
 	 */
 	room.notifyUserJoined(user)
-	room.users[user] = true
+	room.users[user.GetName()] = user
 	room.ready[user] = false
 }
 
@@ -92,8 +94,8 @@ func (room *Room) unregisterUserInRoom(user *User) {
 	 * Unregister user from a Room object
 	 * -user(*User): user to be unregistered from the room
 	 */
-	if _, ok := room.users[user]; ok {
-		delete(room.users, user)
+	if room.users[user.GetName()] != nil{
+		delete(room.users, user.GetName())
 		delete(room.ready, user)
 	}
 }
@@ -104,7 +106,7 @@ func (room *Room) broadcastToClientsInRoom(message []byte) {
 	 * Params:
 	 * -message([]byte): message to be sended to all users of the room
 	 */
-	for user := range room.users {
+	for _, user := range room.users {
 		user.send <- message
 	}
 }
@@ -135,6 +137,18 @@ func (room *Room) notifyGetQuestion(message *Message) {
 	}
 	room.broadcastToClientsInRoom(response.encode())
 }
+
+func (room *Room) notifyGetPlayers(message *Message) {
+	players := getPlayers(room.users)
+	response := &Response {
+		Action: message.Action,
+		Message: encodePlayers(players, room),
+		Sender: message.Sender,
+		Target: message.Target,
+	}
+	fmt.Printf(response.Message)
+	room.broadcastToClientsInRoom(response.encode())
+}
 func (room *Room) notifyUserJoined(user *User) {
 	/*
 	 * Notify Join Message to all users of the Room with action set to JoinRoomAction
@@ -151,13 +165,13 @@ func (room *Room) notifyUserJoined(user *User) {
 	room.broadcastToClientsInRoom(response.encode())
 }
 
-func (room *Room) notifyEndGame(message *Message) {
+func (room *Room) notifyEndGame(message *Message, user *User) {
 	/*
 	 * Notify the end of the game 
 	 * Set Status of Quiz to Ended and status of the room to "not started"
 	 */
 	room.quiz = room.quiz.endGame()
-	json_response := encodeGetQuiz(*room.quiz, "\t", "")
+	json_response := encodeGetQuiz(*room.quiz, "\t", "", user)
 	room.status = "not started"
 	response := &Response{
 		Action: EndGameAction,

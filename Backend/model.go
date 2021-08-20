@@ -29,7 +29,7 @@ type Quiz struct {
 	 * -createdAt(time.Time): Time where Quiz match was created
 	 */
 	Game_ID          string         `json:game_ID`
-	Users            map[*User]bool `json:users`
+	Users            map[string]*User `json:users`
 	Winner           string         `json:winner`
 	Scores           map[string]int  `json:scores`
 	Status           string         `json:status`
@@ -40,7 +40,7 @@ type Quiz struct {
 	createdAt        time.Time
 }
 
-func createQuiz(users map[*User]bool) *Quiz {
+func createQuiz(users map[string]*User) *Quiz {
 	/*
 	 * Creates a Quiz object from a map of Users 
 	 */
@@ -107,7 +107,7 @@ func encodeAnswerQuestion(answer AnsweredQuestion, indent string, prefix string)
 	return json_answer
 }
 
-func encodeGetQuiz(quiz Quiz, indent string, prefix string) []byte {
+func encodeGetQuiz(quiz Quiz, indent string, prefix string, user *User) []byte {
 	/*
 	 * Encode Get Quiz response body
 	 * Params:
@@ -122,8 +122,15 @@ func encodeGetQuiz(quiz Quiz, indent string, prefix string) []byte {
 	 *      "guess": return whether user guess the correct answer of the Question
 	 * }
 	 */
+	var scores []int 
+	var players []string 
+	for name, score := range quiz.Scores {
+		players = append(players, name)
+		scores = append(scores, score)
+	}
 	encode_answer := map[string]interface{}{
-		"score":  quiz.Scores,
+		"players": players,
+		"scores": scores,
 		"status": quiz.Status,
 		"winner": quiz.Winner,
 	}
@@ -143,7 +150,7 @@ func (quiz *Quiz) endGame() *Quiz {
 		for user, score := range quiz.Scores {
 			if score > bestScore {
 				bestScore = score
-				winner = user 
+				winner = user
 			}
 		}
 		quiz.Winner = winner 
