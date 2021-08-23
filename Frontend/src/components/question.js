@@ -7,14 +7,15 @@ import answerQuestion from './answer_question';
 import {widthPercentageToDP as wp, heightPercentageToDP as hp} from 'react-native-responsive-screen';
 import { timeToAnswer } from '../common/common';
 
-export default function Question({question, choices, navigation, quizId, seconds}){
+export default function Question({question, choices, navigation, seconds, websocket, username, roomName}){
     /*
      * Component to render a Question of the Quiz game 
      * Params:
      *      question: current Question text 
      *      choices: Array of possible answer choices
      *      navigation: navigation object to navigate to different Scenes
-     *      quizId: ID of Quiz match
+     *      seconds: remained seconds to answer 
+     *      websocket: websocket connection to send/receive message from server 
      */
     
     return (
@@ -23,31 +24,34 @@ export default function Question({question, choices, navigation, quizId, seconds
             <Text> {question}</Text>
             <View style={{flexDirection: 'row'}}>
                 <Choice style={styles.choice} choice={choices[0]} 
-                        quizId={quizId} question={question} choices={choices}
-                        navigation={navigation} seconds={seconds}></Choice>
+                        question={question} choices={choices} websocket={websocket}
+                        navigation={navigation} seconds={seconds}
+                        username={username} roomName={roomName}></Choice>
                 <Choice style={styles.choice} choice={choices[1]}
-                        quizId={quizId} question={question} choices={choices}
-                        navigation={navigation} seconds={seconds}></Choice>
+                        question={question} choices={choices} websocket={websocket}
+                        navigation={navigation} seconds={seconds}
+                        username={username} roomName={roomName}></Choice>
             </View>
             <View style={{flexDirection: 'row'}}>
                 <Choice style={styles.choice} choice={choices[2]}
-                        quizId={quizId} question={question} choices={choices}
-                        navigation={navigation} seconds={seconds}></Choice>
+                        question={question} choices={choices} websocket={websocket}
+                        navigation={navigation} seconds={seconds}
+                        username={username} roomName={roomName}></Choice>
                 <Choice style={styles.choice} choice={choices[3]}
-                        quizId={quizId} question={question} choices={choices}
-                        navigation={navigation} seconds={seconds}></Choice>
+                        question={question} choices={choices} websocket={websocket}
+                        navigation={navigation} seconds={seconds}
+                        username={username} roomName={roomName}></Choice>
             </View>
         </View>
     );
 }
 
-export function Choice({style, choice, quizId, navigation, question, choices, seconds}){
+export function Choice({style, choice, navigation, question, choices, seconds, websocket, username, roomName}){
     /*
      * Component to render a Choice of a Question 
      * Params:
      *      style: style to use to render a Choice
      *      choice: answer choice to represent
-     *      quizId: ID of Quiz match
      *      navigation: navigation object to navigate in case 
      *      question: Question text used to pass to AnswerQuestion scene
      *      choices: array of Answer choices 
@@ -56,11 +60,11 @@ export function Choice({style, choice, quizId, navigation, question, choices, se
         <TouchableOpacity styles={style}
                           onPress={() => {
                               navigation.navigate('AnswerQuestion', {
-                                quizId: quizId,
+                                websocket: websocket,
                                 answer_given: choice, 
                                 choices: choices,
                                 question: question,
-                                answer: answerQuestion(quizId, choice, timeToAnswer - seconds)
+                                answer: answerQuestion(websocket, username, roomName, choice, timeToAnswer - seconds)
                               })
                           }}>
 

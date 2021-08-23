@@ -9,6 +9,10 @@ import InsertQuestion from './insert_question.js';
 import QuizMatch from './quiz_match.js';
 import AnswerQuestion from './answer_question.js';
 import EndQuiz from './end_quiz.js';
+import RoomPage from './room_page.js';
+import Login from './login.js';
+import SignUp from './register.js';
+
 const Stack = createStackNavigator();
 
 export default function Quiz(){
@@ -21,6 +25,8 @@ export default function Quiz(){
      * -QuizMatch: scene used to play a Quiz game 
      * -AnswerQuestion: scene used to answer Question of a Quiz game
      * -EndQuiz: scene used to render end of a Quiz game  
+     * 
+     *                 
      */
     return (
         <NavigationContainer>
@@ -28,6 +34,15 @@ export default function Quiz(){
                 <Stack.Screen
                     name="Home"
                     component={HomeScreen}
+                    initialParams={{token: "", name: ""}}
+                />
+                <Stack.Screen
+                    name="Sign Up"
+                    component={SignUp}
+                />
+                <Stack.Screen 
+                    name="Login"
+                    component={Login}
                 />
                 <Stack.Screen
                     name="StartGame"
@@ -36,6 +51,10 @@ export default function Quiz(){
                 <Stack.Screen
                     name="InsertQuestion"
                     component={InsertQuestion}
+                />
+                <Stack.Screen
+                    name="RoomPage"
+                    component={RoomPage}
                 />
                 <Stack.Screen
                     name="QuizMatch"

@@ -1,20 +1,53 @@
 import React from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, Button} from 'react-native';
 import {widthPercentageToDP as wp, heightPercentageToDP as hp} from 'react-native-responsive-screen';
+import { validateSocket, joinRoom } from '../api/start_game';
 
-export default function HomeScreen({ navigation }) {
+export default function HomeScreen({ route, navigation }) {
     /*
      * HomeScreen is the component used to render the home of Briscola game App
      */
-  return (
+    const {token, name } = route.params 
+    var websocket
+    if (name != "" && token != "") {
+        websocket = new WebSocket('ws://192.168.1.75:8080/start_quiz/' + name)
+
+        websocket.onopen = (e) => {
+            validateSocket(websocket, name, token)
+        }
+        console.log(websocket)
+    }
+    return (
             <View styles={styles.container}>
+                <View style={{flexDirection: "row"}}>
+                    <Text>{name}</Text>
+                    <Button title="Sign Up" onPress={()=> navigation.navigate('Sign Up')}></Button>
+                    <Button title="Sign In" onPress={()=> navigation.navigate('Login')}></Button>
+                </View>
                 <Text style={styles.textTitle}> {navigation.name} </Text>
                 <View styles={{flexDirection:'row'}}>
                     <Button //style={styles.buttonStyle}
-                            title="Start Game"
+                            title="Start Single Player Game"
                             onPress={() =>
-                                          navigation.navigate('StartGame')
+                                          navigation.navigate('StartGame', {
+                                              name: name,
+                                              token: token, 
+                                              websocket: websocket
+                                          })
                                       }
+                    >
+                    </Button>
+                    <Button //style={styles.buttonStyle}
+                            title="Start MultiPlayer game"
+                            onPress={() => {
+                                        joinRoom(websocket, "Marco", "room1")
+                                        navigation.navigate('RoomPage', {
+                                              websocket: websocket,
+                                              userName: name,
+                                              roomName: "room1",
+                                              token: token,
+                                        })
+                                    }}
                     >
                     </Button>
                     <Button

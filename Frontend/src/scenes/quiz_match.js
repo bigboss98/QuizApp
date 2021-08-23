@@ -13,38 +13,37 @@ export default function QuizMatch({ route, navigation }) {
 	 * HomeScreen is the component used to render the home of Briscola game App
 	 */
 
-		const {gameId, started} = route.params;
+	const {websocket, question, choices, userName, roomName, started} = route.params;
+	const [quiz, setQuiz] = useState({});
 
-		const [quiz, setQuiz] = useState({
-			started: started,
-			quiz_id: gameId,
-			question: {},
-		});
-
-
-		useEffect(() => {
-			const getMyQuestion = async () => {
-				const data = await getQuestion(gameId)
-				if(data.question.Question == ""){
-					EndGame(gameId)
-					console.log("Dio")
-					navigation.navigate('EndQuiz', {
-						gameId: gameId, 
-					})
-				}
-				setQuiz({ 
-					started: true,
-					quiz_id: gameId,
-					question: data.question,
-				});
-	
+	useEffect(() => {
+		setQuiz({
+			started:started,
+			choices: choices,
+			question: question,
+		})
+		console.log(quiz)
+		if(question == ""){
+			var end_game = async () => {
+				await EndGame(websocket, userName, roomName)
 			}
-			getMyQuestion()
-		}, [route])
+			end_game()
+			websocket.onmessage = (e) => {
+				// a message was received
+				var message = JSON.parse(e.data)
+				var final_result = JSON.parse(message.Message)    
+				
+				console.log(final_result)
+				navigation.navigate('EndQuiz', {
+					websocket: websocket,
+					results: final_result,
+				})
+				}}
+	}, [route])
 
-		const [timer, setTimer] = useState({
-            seconds: timeToAnswer,
-        })
+	const [timer, setTimer] = useState({
+        seconds: timeToAnswer,
+    })
 
 	
 	useEffect(()=> {
@@ -54,18 +53,17 @@ export default function QuizMatch({ route, navigation }) {
 	}, [route])
     useEffect(() => {
         let timeout = setTimeout(() => {
-            console.log(timer.seconds)
             if(timer.seconds > 0){
                 setTimer({
                     seconds: timer.seconds - 1,
                 })
             }else{
                 navigation.navigate('AnswerQuestion', {
-                    quizId: gameId,
+					websocket: websocket,
                     answer_given: "", 
-                    choices: quiz.question.Choices,
-                    question: quiz.question.Question,
-                    answer: answerQuestion(gameId, "", timer.seconds)
+                    choices: quiz.choices,
+                    question: quiz.question,
+                    answer: answerQuestion(websocket, userName, roomName, "", timer.seconds)
                 })
             }
          }, 1000);
@@ -73,11 +71,13 @@ export default function QuizMatch({ route, navigation }) {
     })
 	return (
 		<View style={styles.container}>
-			{ quiz.started && quiz.question.Question != "" ?             
+			{ quiz.started && quiz.question != "" ?             
 					<View>
 						<Text>Remaining Time: {timer.seconds} </Text>
-						<Question question = {quiz.question.Question} choices={quiz.question.Choices}
-							  	  navigation={navigation} quizId={quiz.quiz_id} seconds={timer.seconds}></Question>
+						<Question question = {quiz.question} choices={quiz.choices}
+							  	  navigation={navigation} seconds={timer.seconds}
+								  websocket={websocket} username={userName}
+								  roomName={roomName}></Question>
 					</View> :
 					<Text></Text>
 			}

@@ -2,29 +2,42 @@ import { StatusBar } from 'expo-status-bar';
 import React, {useState, useEffect} from 'react';
 import { StyleSheet, Text, View, Button, TouchableOpacity} from 'react-native';
 import {widthPercentageToDP as wp, heightPercentageToDP as hp} from 'react-native-responsive-screen';
-import { startQuiz } from '../api/start_game';
+import { startQuiz, startSinglePlayer } from '../api/start_game';
 import { timeToAnswer } from '../common/common';
 
-export default function StartGame({ navigation }) {
+export default function StartGame({ route, navigation }) {
     /*
      * SelectGameType is the component used to select which modalities of Briscola game between
      * Single player and Multiplayer
      */
+        const {name, token, websocket} = route.params
+
         return (
             <View style={styles.container}>
                 <TouchableOpacity style={styles.buttonStyle}
                     onPress={() => {
                             console.log("Dio")
                             const startMyGame = async () => {
-                                const data = await startQuiz({
-                                    users: ["Marco"],
-                                })
-                                navigation.navigate('QuizMatch', {
-                                    gameId: data.game_id,
-                                    started: false,
-                                })
+                                await startSinglePlayer(websocket, name, "room1")
+ 
                             }
                             startMyGame()
+                            websocket.onmessage = (e) => {
+                                // a message was received
+                                var message = JSON.parse(e.data)
+                                var received_message = JSON.parse(message.Message)
+                                var question = received_message.question.Question
+                                var choices = received_message.question.Choices
+                                navigation.navigate('QuizMatch', {
+                                    websocket: websocket, 
+                                    question: question,
+                                    choices: choices,
+                                    userName: name,
+                                    roomName: "room1",
+                                    started: true,
+
+                                })
+                            }
                     }}>
                     <Text style={styles.buttomText}>Start Game</Text>
                 </TouchableOpacity>

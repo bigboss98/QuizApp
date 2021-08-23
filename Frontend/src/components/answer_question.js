@@ -1,11 +1,11 @@
 import { AnswerQuestion } from "../api/start_game";
 
-export default function answerQuestion(quiz_id, choice, timeAnswer){
+export default async function answerQuestion(websocket, userName, roomName, choice, timeAnswer){
     /* 
      * Component to answer Question given quiz_id and the answer choice
      *
      * Params:
-     *      quiz_id: ID of Quiz game 
+     *      websocket: Websocket connection to communicate to the server  
      *      choice: Answer choice of a given question 
      * Return a JSON object with the following semantics
      * {
@@ -14,15 +14,17 @@ export default function answerQuestion(quiz_id, choice, timeAnswer){
      * }
      */
     const answer = async () => {
-        const data = await AnswerQuestion(quiz_id, {
+        await AnswerQuestion(websocket, userName, roomName, {
+                "User": userName,
                 "Answers": [choice],
                 "TimeToAnswer": timeAnswer,
             });
-        return {
-            correct_answer: data.correct_answer,
-            guess: data.guess, 
-            score: data.score,            
-        }
     }
-    return answer();
+    answer();
+    websocket.onmessage = (e) => {
+        // a message was received
+        var message = JSON.parse(e.data)
+        var received_message = JSON.parse(message.Message)    
+        return received_message
+    }
 }

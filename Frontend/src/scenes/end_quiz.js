@@ -4,30 +4,30 @@ import {widthPercentageToDP as wp, heightPercentageToDP as hp} from 'react-nativ
 import {FinalResults} from '../api/start_game';
 
 export default function EndQuiz({ route, navigation}){
-    const {gameId} = route.params
+    const {websocket, results} = route.params
     const [finalResults, setFinalResults] = useState({
-            status: "",
-            winner: "",
-            score: 0,
+        status: results.status,
+        winner: results.winner,
+        scores: results.scores,
+        players: results.players,
+            
         }) 
-	useEffect(() => {
-		const finalMyResults = async () => {
-			const data = await FinalResults(gameId);
-			setFinalResults({ 
-				status: data.status,
-				winner: data.winner,
-				score: data.score,
-		    });
-	
-		}
-		finalMyResults()
-	}, [route])    
+    useEffect(() => {
+
+        setFinalResults({
+            status: results.status,
+            winner: results.winner,
+            scores: results.scores,
+            players: results.players,
+        })
+	}, [route])   
+    
     return (
             <View>
                 {finalResults.status != "" ?
                     <View>
                         <Text> End Quiz </Text> 
-                        <Text> Score: {finalResults.score} </Text>
+                        <Text> Score {finalResults.players[0]}: {finalResults.scores[0]} </Text>
                         <Button title="goBack" onPress={() => {
                             navigation.navigate('Home')
                             }}></Button>
