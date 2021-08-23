@@ -170,14 +170,18 @@ func (user *User) handleNewMessage(jsonMessage []byte) {
 }
 
 func (user *User) handleGetPlayersMessage(message *Message) {
-	roomName := message.Target.Name 
+	if user.Status != "Not Authorized" {
+		roomName := message.Target.Name 
 
-	room := user.wsServer.findRoomByName(roomName)
+		room := user.wsServer.findRoomByName(roomName)
+	
+		room.broadcast <- message
+	} 
 
-	room.broadcast <- message
 }
 
 func (user *User) handleAuthentification(message *Message) {
+	log.Printf("Request Authentification")
 	if IsAuthorized(message.Token) {
 		user.Status = "not ready"
 		user.send <- []byte("User Authorized")
@@ -189,11 +193,15 @@ func (user *User) handleAuthentification(message *Message) {
 }
 
 func (user *User) handleGame(message *Message) {
-	roomName := message.Target.Name
+	if user.Status != "Not Authorized" {
+		roomName := message.Target.Name
 
-	room := user.wsServer.findRoomByName(roomName)
+		room := user.wsServer.findRoomByName(roomName)
 
-	room.broadcast <- message 
+		room.broadcast <- message
+	}else{
+		log.Printf("NOT AUTHORIZED")
+	}
 }
 
 func (user *User) handleStartGameMessage(message *Message) {
@@ -206,22 +214,25 @@ func (user *User) handleStartGameMessage(message *Message) {
 	 * -user(*User): user object that want start the game 
 	 * -message(Message): message Object 
 	 */
-	roomName := message.Target.Name
+	
+	if user.Status != "Not Authorized" { 
+		roomName := message.Target.Name
 
-	room := user.wsServer.findRoomByName(roomName)
+		room := user.wsServer.findRoomByName(roomName)
 
-	if room != nil && room.status != "started"{ 
-		room.users[user.GetName()].Status = "ready"
-		room.ready[user] = true 
+		if room != nil && room.status != "started"{ 
+			room.users[user.GetName()].Status = "ready"
+			room.ready[user] = true 
 
-		var startedGame = "started" 
-		for _, status := range room.ready {
-			if startedGame == "started" && !status {
-				startedGame = "not started" 
+			var startedGame = "started" 
+			for _, status := range room.ready {
+				if startedGame == "started" && !status {
+					startedGame = "not started" 
+				}
 			}
+			room.status = startedGame
+			room.broadcast <- message
 		}
-		room.status = startedGame
-		room.broadcast <- message
 	} 
 }
 
@@ -232,15 +243,20 @@ func (user *User) handleJoinRoomMessage(message Message) {
 	 * -user(*User): user Object which joins the room 
 	 * -message(Message): message received from User to join Room 
 	 */
-	roomName := message.Target.Name
-	log.Printf("Name Room: %s", roomName)
+	if user.Status != "Not Authorized" {
+		roomName := message.Target.Name
+		log.Printf("Name Room: %s", roomName)
 
-	room := user.wsServer.findRoomByName(roomName)
-	if room == nil {
-		room = user.wsServer.createRoom(roomName)
+		room := user.wsServer.findRoomByName(roomName)
+		if room == nil {
+			room = user.wsServer.createRoom(roomName)
+		}
+		user.room = room
+		room.register <- user
+	}else{
+		log.Printf(user.Status)
+		log.Printf("NOT AUTHORIZED")
 	}
-	user.room = room
-	room.register <- user
 }
 
 func (user *User) handleLeaveRoomMessage(message Message) {
@@ -250,10 +266,12 @@ func (user *User) handleLeaveRoomMessage(message Message) {
 	 * -user(*User): user Object which leaves the room 
 	 * -message(Message): message received from User to leave Room 
 	 */
-	room := user.wsServer.findRoomByName(message.Target.Name)
-	if room != nil && user.room != nil && user.room == room {
-		user.room = nil
-		room.unregister <- user
+	if user.Status != "Not Authorized" {
+		room := user.wsServer.findRoomByName(message.Target.Name)
+		if room != nil && user.room != nil && user.room == room {
+			user.room = nil
+			room.unregister <- user
+		}
 	}
 }
 

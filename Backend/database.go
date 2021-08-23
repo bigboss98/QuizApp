@@ -323,7 +323,11 @@ func deleteQuizzesFromDatabase(db *pgxpool.Pool) {
 
 func insertUserToDatabase(db *pgxpool.Pool, user User) {
 	/*
+	 * Insert Used to DB during Sign Up 
 	 * 
+	 * Params:
+	 * -db(*pgxpool.Pool): Pool of DB connection used to insert User object 
+	 * -user(User): User object to be inserted on DB
 	 */
 	insertUser := `insert into "user"(name, password, role) values ($1, $2, $3)`
 	_, err := db.Exec(context.Background(), insertUser, user.Name, user.Password, user.Role)
@@ -336,6 +340,13 @@ func insertUserToDatabase(db *pgxpool.Pool, user User) {
 }
 
 func getUserFromDatabase(db *pgxpool.Pool, name string) *User{
+	/*
+	 * Get User from DB used for Login 
+	 * 
+	 * Params:
+	 * -db(*pgxpool.Pool): Pool of DB connection used to retrieve DB 
+	 * -name(string): name of User
+	 */
 	getUser := `select * from "user" where name=$1`
 	row := db.QueryRow(context.Background(), getUser, name)
 	var username string 

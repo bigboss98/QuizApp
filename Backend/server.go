@@ -314,8 +314,8 @@ func main() {
 	router.HandleFunc("/start_quiz/{name}", func(w http.ResponseWriter, r *http.Request) {
 		startConn(wsServer, w, r)
 	})
-	router.HandleFunc("/sign_up", signUp).Methods("POST") //WORK only create User table on the DB
-	router.HandleFunc("/sign_in", signIn).Methods("POST") //Create User table on the DB 
+	router.HandleFunc("/sign_up", signUp).Methods("POST") //WORK 
+	router.HandleFunc("/sign_in", signIn).Methods("POST") //WORK
 	router.HandleFunc("/insert_question", insertQuestion).Methods("POST", "OPTIONS")  //WORK
 	router.HandleFunc("/update_question", updateQuestion).Methods("PUT")              //WORK make some test and choose what should be the response body
 	router.HandleFunc("/delete_question", deleteQuestion).Methods("DELETE")           //WORK change a little the response body

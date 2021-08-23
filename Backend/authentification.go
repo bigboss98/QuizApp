@@ -16,11 +16,26 @@ import (
 const secretkey = "GiorgioneMagoDelGuanciale"
 
 type Authentication struct {
+	/*
+	 * Authentification struct used to represent an Authentication Object
+	 * 
+	 * Fields:
+	 * -Name(string): Name of user to be authentificated
+	 * -Password(string): Password of User to be authentificated
+	 */
 	Name     string `json:"name"`
 	Password string `json:"password"`
 }
 
 type Token struct {
+	/*
+	 * Represent a Token Object used for authentification and authorization
+	 * 
+	 * Fields:
+	 * -Role(string): Role of Authentificated User
+	 * -Name(string): Name of User who control the Token
+	 * -TokenString(string): JWT Token for an User 
+	 */
 	Role        string `json:"role"`
 	Name        string `json:"name"`
 	TokenString string `json:"token"`
@@ -57,7 +72,7 @@ func GenerateJWT(name string, role string) (string, error) {
 
 func GeneratehashPassword(password string) (string, error) {
 	/*
-	 * Generate an Hash Password given visible password
+	 * Generate an Hash Password given visible password using 12 Bits 
 	 *
 	 * Params:
 	 * -password(string): password of User
@@ -70,16 +85,37 @@ func GeneratehashPassword(password string) (string, error) {
 }
 
 func CheckPasswordHash(password string, hash string) bool {
+	/*
+	 * Check whether password and hashed version on database are equal
+	 * 
+	 * Params:
+	 * -password(string): plain text password provided as input by user
+	 * -hash(string): hash Password saved on DB 
+	 */
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil
 }
 
 func encodeSignIn(token Token, indent string, prefix string) string {
+	/*
+	 * Encode JSON message for SignIn message returning a JSON message as string
+	 * 
+	 * Params:
+	 * -token(Token): token object to be returned by signIn endpoint
+	 * -indent(string): indent string used to indent JSON message 
+	 * -prefix(string): prefix used in JSON message
+	 */
 	json_user, _ := json.MarshalIndent(token, prefix, indent)
 	return string(json_user)
 }
 
 func IsAuthorized(string_token string) bool {
+	/*
+	 * Check whether an user has a valid JWT token 
+	 *
+	 * Params:
+	 * -string_token(string): JWT token provided by an User to be checked 
+	 */
 	if string_token == "" {
 		log.Printf("No Token Found")
 		return false
